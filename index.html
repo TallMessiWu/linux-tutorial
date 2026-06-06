@@ -2096,6 +2096,26 @@ q            <span class="cmt"># 停止录制</span>
     如果没 commit 过就丢了……那就真没了。</p>
   </div>
 
+
+	  <h3>git add 后悔了怎么撤销</h3>
+	  <p>这是最高频的「手滑」场景——<code>git add .</code> 一把梭，加进去才发现不该加（临时文件、调试代码、机密信息）。<strong>别慌，好几种救法：</strong></p>
+	  <div class="codeblock"><pre><span class="cmt"># ① 撤回某个文件的暂存（文件改动还在，只是从暂存区移除）</span>
+<span class="pr">$</span> <span class="cm">git</span> restore <span class="fl">--staged</span> config.yml       <span class="cmt"># 新写法（Git 2.23+，推荐）</span>
+<span class="pr">$</span> <span class="cm">git</span> reset HEAD config.yml              <span class="cmt"># 老写法（所有版本通用）</span>
+
+<span class="cmt"># ② 撤回所有暂存（整个暂存区清空，改动全回到工作区）</span>
+<span class="pr">$</span> <span class="cm">git</span> restore <span class="fl">--staged</span> .                 <span class="cmt"># 新写法</span>
+<span class="pr">$</span> <span class="cm">git</span> reset HEAD .                       <span class="cmt"># 老写法</span>
+<span class="pr">$</span> <span class="cm">git</span> reset                              <span class="cmt"># 等价于 git reset HEAD .（最简）</span>
+
+<span class="cmt"># ③ 不仅撤回暂存，连文件改动也丢弃（回到最近一次 commit 的状态）</span>
+<span class="pr">$</span> <span class="cm">git</span> restore config.yml                 <span class="cmt"># 丢弃工作区改动（不可逆！）</span>
+<span class="pr">$</span> <span class="cm">git</span> checkout <span class="fl">--</span> config.yml            <span class="cmt"># 老写法</span>
+
+<span class="cmt"># ④ 已 commit 但没 push：撤回最近一次 commit，改动回到暂存区</span>
+<span class="pr">$</span> <span class="cm">git</span> reset <span class="fl">--soft</span> HEAD~1                 <span class="cmt"># commit 消失，改动在暂存区</span>
+<span class="pr">$</span> <span class="cm">git</span> reset HEAD~1                        <span class="cmt"># 默认 --mixed：commit 消失，改动回到工作区（不在暂存）</span></pre></div>
+	  <p>简单记：<strong>只撤暂存不改文件 → <code>git restore --staged &lt;文件&gt;</code></strong>；连文件改动一起丢 → <code>git restore &lt;文件&gt;</code>；连 commit 一起撤 → <code>git reset --soft HEAD~1</code>。</p>
   <h3>stash：临时「存档」手头改动</h3>
   <p>正在改 feature 分支，突然要切去 main 修紧急 bug——但手头代码还不适合 commit。stash 就是「暂存现场，回头继续」。</p>
   <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">git</span> stash                            <span class="cmt"># 暂存所有改动，工作区变干净</span>

@@ -4,7 +4,7 @@ This file provides guidance to AI agents when working with code in this reposito
 
 ## 这个仓库是什么
 
-一份**单文件、自包含、离线**的中文教程网页:`index.html`(约 2286 行 / 180K)。
+一份**单文件、自包含、离线**的中文教程网页:`index.html`(约 2307 行 / 181K)。
 内容是「Linux 命令 + Vim 从入门到进阶」,面向一位**每天在服务器上干活、但没系统学过 Linux** 的用户。
 
 整个"代码库"就是这<strong>一个 HTML 文件</strong>。所有 CSS / JS 全部内联,**无任何外部依赖**(不引 CDN、字体、图片、库)。
@@ -27,7 +27,7 @@ This file provides guidance to AI agents when working with code in this reposito
 | 侧边栏目录导航 | `<nav id="toc">` | ~200 |
 | 首屏 hero | `<header class="hero">` | ~230 |
 | 各章正文 | `<!-- ===== N ===== -->` 注释分隔 | 见下表 |
-| 内联 JS(复制按钮 / 目录滚动高亮 / 移动端菜单) | `<script>` … `</script>` | ~2244–2284 |
+| 内联 JS(复制按钮 / 目录滚动高亮 / 移动端菜单) | `<script>` … `</script>` | ~2264–2304 |
 
 ### 章节导航地图(改某章时直接按行号 Read,无需读全文)
 
