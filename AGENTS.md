@@ -65,7 +65,22 @@ This file provides guidance to AI agents when working with code in this reposito
 
 ## 校验(改完必跑)
 
-无构建、无测试框架。改完用以下方式自检:
+改完 `index.html` 后分两步：
+
+### ① 同步 AGENTS.md 行号（必做）
+
+`update_agents_md.py` 自动扫描 `index.html` 的章节/结构行号并写入 `AGENTS.md`。**不要手动改行号，跑这个脚本即可。**
+
+```bash
+python3 update_agents_md.py          # 先预览变更
+python3 update_agents_md.py --write  # 确认无误后写入
+```
+
+脚本会自动更新：文件总行数/大小、CSS 结束行、nav/hero 位置、JS 起止行、全部 19 章起始行。
+
+### ② 自检脚本
+
+无构建、无测试框架。改完用以下方式自检：
 
 ```bash
 # ① 标签配对(开/闭数量必须相等)
@@ -77,6 +92,26 @@ grep -noE 'src="http|href="http|cdn\.|googleapis|<script src|<link [^>]*href="ht
 # ③ 章节 id 与目录锚点一一对应(两行应一致)
 grep -oE 'id="c[0-9]+"' index.html | grep -oE 'c[0-9]+' | sort -V | uniq | tr '\n' ' '; echo
 grep -oE 'href="#c[0-9]+"' index.html | grep -oE 'c[0-9]+' | sort -V | uniq | tr '\n' ' '; echo
+```
+
+## Commit 约定
+
+提交信息**必须使用 gitmoji**，通过 `/gitmoji-commit` skill 生成。
+
+格式：`<gitmoji> <简短中文描述>`
+
+示例：
+- 📚 新增第 18 章（压缩与归档 tar/zip）
+- 🔧 修复 grep 示例中未转义的 &
+- ✅ 更新 AGENTS.md 行号
+
+常用 gitmoji：📚 文档/教程 · ✨ 新功能 · 🔧 修复/改进 · 📦 打包/压缩相关 · 🐛 Bug 修复 · ♻️ 重构 · ⚡ 性能 · ✅ 验证/更新。
+
+```bash
+# 改完 index.html 后提交的标准流程：
+python3 update_agents_md.py --write   # ① 同步行号
+# ② 运行上方自检脚本（标签配对、外部依赖、章节一致性）
+/gitmoji-commit                        # ③ 用 gitmoji skill 生成 commit message
 ```
 
 ## 预览(WSL → Windows 浏览器)
