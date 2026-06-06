@@ -96,16 +96,8 @@ grep -oE 'href="#c[0-9]+"' index.html | grep -oE 'c[0-9]+' | sort -V | uniq | tr
 
 ## Commit 约定
 
-提交信息**必须使用 gitmoji**，通过 `/gitmoji-commit` skill 生成。
+提交信息**必须使用 gitmoji-commit skill** 生成。
 
-格式：`<gitmoji> <简短中文描述>`
-
-示例：
-- 📚 新增第 18 章（压缩与归档 tar/zip）
-- 🔧 修复 grep 示例中未转义的 &
-- ✅ 更新 AGENTS.md 行号
-
-常用 gitmoji：📚 文档/教程 · ✨ 新功能 · 🔧 修复/改进 · 📦 打包/压缩相关 · 🐛 Bug 修复 · ♻️ 重构 · ⚡ 性能 · ✅ 验证/更新。
 
 ```bash
 # 改完 index.html 后提交的标准流程：
