@@ -1,0 +1,1828 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linux 命令 + Vim · 从入门到进阶</title>
+<style>
+  :root{
+    --bg:#0d1117; --bg-soft:#161b22; --bg-code:#0a0e14; --bg-side:#0a0d12;
+    --fg:#c9d1d9; --fg-dim:#8b949e; --fg-faint:#6e7681;
+    --green:#3fb950; --green-soft:#56d364; --cyan:#39c5cf; --blue:#58a6ff;
+    --yellow:#e3b341; --orange:#db8e34; --red:#f85149; --purple:#bc8cff;
+    --border:#21262d; --border-soft:#30363d;
+    --warn-bg:#2a1f12; --warn-bd:#5c3d12;
+    --tip-bg:#0f2417; --tip-bd:#1f6f3c;
+    --note-bg:#10202f; --note-bd:#1f4f7a;
+    --sidebar-w:290px;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,"DejaVu Sans Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--bg);color:var(--fg);
+    font-family:var(--sans);line-height:1.7;font-size:16px;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- 侧边栏 ---------- */
+  #sidebar{
+    position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;
+    background:var(--bg-side);border-right:1px solid var(--border);
+    overflow-y:auto;padding:22px 0 60px;z-index:50;
+  }
+  #sidebar .brand{
+    padding:4px 22px 16px;border-bottom:1px solid var(--border);margin-bottom:10px;
+  }
+  #sidebar .brand h1{
+    font-size:16px;margin:0;color:var(--green-soft);font-family:var(--mono);letter-spacing:.5px;
+  }
+  #sidebar .brand h1::before{content:"$ ";color:var(--green)}
+  #sidebar .brand p{margin:6px 0 0;font-size:12px;color:var(--fg-faint)}
+  #sidebar nav a{
+    display:block;padding:6px 22px 6px 22px;color:var(--fg-dim);
+    text-decoration:none;font-size:13.5px;border-left:2px solid transparent;
+    transition:.12s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  #sidebar nav a .num{color:var(--fg-faint);margin-right:7px;font-family:var(--mono);font-size:12px}
+  #sidebar nav a:hover{color:var(--fg);background:var(--bg-soft)}
+  #sidebar nav a.active{
+    color:var(--green-soft);border-left-color:var(--green);
+    background:linear-gradient(90deg,rgba(63,185,80,.10),transparent);
+  }
+  #sidebar nav a.active .num{color:var(--green)}
+
+  /* ---------- 主内容 ---------- */
+  main{
+    margin-left:var(--sidebar-w);padding:0 0 120px;
+  }
+  .wrap{max-width:860px;margin:0 auto;padding:0 28px}
+  header.hero{
+    border-bottom:1px solid var(--border);
+    background:radial-gradient(900px 300px at 20% -40%,rgba(63,185,80,.08),transparent),
+               var(--bg);
+    padding:64px 0 44px;margin-bottom:8px;
+  }
+  header.hero .wrap{max-width:860px}
+  header.hero .tag{
+    font-family:var(--mono);color:var(--green);font-size:13px;letter-spacing:1px;
+  }
+  header.hero h1{font-size:34px;margin:10px 0 14px;line-height:1.25}
+  header.hero p{color:var(--fg-dim);font-size:16px;margin:0;max-width:640px}
+
+  section.chapter{padding:46px 0 6px;border-top:1px solid var(--border)}
+  section.chapter:first-of-type{border-top:none}
+  h2{
+    font-size:25px;margin:0 0 6px;scroll-margin-top:20px;line-height:1.3;
+  }
+  h2 .h2num{
+    font-family:var(--mono);color:var(--green);font-size:18px;margin-right:10px;
+  }
+  h3{font-size:19px;margin:32px 0 10px;color:var(--cyan)}
+  h4{font-size:16px;margin:22px 0 8px;color:var(--fg);font-weight:600}
+  p{margin:12px 0}
+  .lead{color:var(--fg-dim);font-size:15px;margin-top:2px}
+  a{color:var(--blue)}
+  strong{color:#fff;font-weight:600}
+  ul,ol{padding-left:22px;margin:12px 0}
+  li{margin:6px 0}
+
+  /* 行内代码 */
+  code{
+    font-family:var(--mono);font-size:.875em;
+    background:var(--bg-soft);color:var(--green-soft);
+    padding:2px 6px;border-radius:5px;border:1px solid var(--border);
+  }
+  /* 代码块 */
+  .codeblock{position:relative;margin:16px 0}
+  .codeblock .label{
+    position:absolute;top:8px;right:10px;font-family:var(--mono);
+    font-size:11px;color:var(--fg-faint);text-transform:uppercase;letter-spacing:.5px;
+  }
+  pre{
+    background:var(--bg-code);border:1px solid var(--border-soft);border-radius:8px;
+    padding:16px 18px;overflow-x:auto;margin:0;font-family:var(--mono);
+    font-size:13.5px;line-height:1.65;color:var(--fg);
+  }
+  pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit}
+  pre .cmt{color:var(--fg-faint);font-style:italic}
+  pre .pr{color:var(--green);user-select:none}      /* 提示符 $ */
+  pre .cm{color:var(--cyan)}                          /* 命令名 */
+  pre .fl{color:var(--purple)}                        /* 选项/flag */
+  pre .st{color:var(--yellow)}                        /* 字符串 */
+  pre .op{color:var(--red)}                           /* 操作符 | > >> */
+  pre .out{color:var(--fg-dim)}                       /* 模拟输出 */
+  pre .va{color:var(--orange)}                        /* 变量 */
+  .copy{
+    position:absolute;top:6px;right:8px;background:var(--bg-soft);
+    border:1px solid var(--border-soft);color:var(--fg-dim);font-size:11px;
+    padding:3px 9px;border-radius:6px;cursor:pointer;font-family:var(--mono);
+    opacity:0;transition:.15s;
+  }
+  .codeblock:hover .copy{opacity:1}
+  .copy:hover{color:var(--green-soft);border-color:var(--green)}
+  .copy.done{color:var(--green);border-color:var(--green)}
+
+  /* 表格 */
+  .tbl{overflow-x:auto;margin:16px 0}
+  table{border-collapse:collapse;width:100%;font-size:14px}
+  th,td{border:1px solid var(--border-soft);padding:8px 12px;text-align:left;vertical-align:top}
+  th{background:var(--bg-soft);color:var(--fg);font-weight:600}
+  td code{white-space:nowrap}
+  tbody tr:nth-child(even){background:rgba(255,255,255,.015)}
+
+  /* 提示框 */
+  .box{border-radius:8px;padding:13px 16px 13px 16px;margin:18px 0;font-size:14.5px;border:1px solid}
+  .box p:first-child{margin-top:0}.box p:last-child{margin-bottom:0}
+  .box .bt{font-weight:700;display:block;margin-bottom:4px;font-size:13px;letter-spacing:.3px}
+  .warn{background:var(--warn-bg);border-color:var(--warn-bd)}
+  .warn .bt{color:var(--yellow)}
+  .tip{background:var(--tip-bg);border-color:var(--tip-bd)}
+  .tip .bt{color:var(--green-soft)}
+  .note{background:var(--note-bg);border-color:var(--note-bd)}
+  .note .bt{color:var(--blue)}
+
+  /* 流程图(纯 CSS) */
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:18px 0;font-family:var(--mono);font-size:13px}
+  .flow .node{background:var(--bg-soft);border:1px solid var(--border-soft);border-radius:6px;padding:7px 12px;color:var(--fg)}
+  .flow .node.hl{border-color:var(--green);color:var(--green-soft)}
+  .flow .arr{color:var(--green);font-weight:700}
+
+  /* 键盘按键 */
+  kbd{
+    font-family:var(--mono);font-size:12px;background:#1c2128;color:#e6edf3;
+    border:1px solid #444c56;border-bottom-width:2px;border-radius:5px;
+    padding:1px 7px;margin:0 1px;display:inline-block;line-height:1.5;
+  }
+
+  /* 速查卡片 */
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin:18px 0}
+  .card{background:var(--bg-soft);border:1px solid var(--border-soft);border-radius:8px;padding:14px 16px}
+  .card h4{margin:0 0 8px;color:var(--green-soft);font-size:14px}
+  .card table{font-size:13px}
+  .card th,.card td{padding:5px 8px}
+
+  /* 顶部移动栏 */
+  #topbar{display:none}
+
+  @media(max-width:980px){
+    :root{--sidebar-w:0px}
+    #sidebar{transform:translateX(-100%);transition:.22s;width:280px}
+    #sidebar.open{transform:translateX(0)}
+    main{margin-left:0}
+    #topbar{
+      display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:40;
+      background:var(--bg-side);border-bottom:1px solid var(--border);padding:10px 16px;
+    }
+    #topbar button{
+      background:var(--bg-soft);border:1px solid var(--border-soft);color:var(--fg);
+      font-size:20px;line-height:1;padding:6px 11px;border-radius:7px;cursor:pointer;
+    }
+    #topbar .t{font-family:var(--mono);color:var(--green-soft);font-size:14px}
+    header.hero{padding:36px 0 30px}
+    header.hero h1{font-size:26px}
+    #backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:45;display:none}
+    #backdrop.show{display:block}
+  }
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:#30363d;border-radius:5px}
+  ::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+
+<aside id="sidebar">
+  <div class="brand">
+    <h1>linux &amp; vim</h1>
+    <p>从入门到进阶 · 服务器实战手册</p>
+  </div>
+  <nav id="toc">
+    <a href="#c1"><span class="num">01</span>如何用这份教程</a>
+    <a href="#c2"><span class="num">02</span>文件与目录基础</a>
+    <a href="#c3"><span class="num">03</span>管道与重定向 ★</a>
+    <a href="#c4"><span class="num">04</span>grep 与正则 ★</a>
+    <a href="#c5"><span class="num">05</span>文本三剑客 sed/awk</a>
+    <a href="#c6"><span class="num">06</span>find 实战 ★</a>
+    <a href="#c7"><span class="num">07</span>权限·进程·信号</a>
+    <a href="#c8"><span class="num">08</span>远程传输与打包 ★</a>
+    <a href="#c9"><span class="num">09</span>会话保持与 Shell 效率</a>
+    <a href="#c10"><span class="num">10</span>SSH 进阶</a>
+    <a href="#c11"><span class="num">11</span>服务·日志·定时</a>
+    <a href="#c12"><span class="num">12</span>排查类工具</a>
+    <a href="#c13"><span class="num">13</span>echo·变量·环境 ★</a>
+    <a href="#c14"><span class="num">14</span>组合命令实战配方 ★</a>
+    <a href="#c15"><span class="num">15</span>Shell 脚本基础 ★</a>
+    <a href="#c16"><span class="num">16</span>Vim 系统教学 ★</a>
+    <a href="#c17"><span class="num">17</span>速查附录</a>
+  </nav>
+</aside>
+<div id="backdrop"></div>
+
+<div id="topbar">
+  <button id="menuBtn" aria-label="目录">☰</button>
+  <span class="t">linux &amp; vim 手册</span>
+</div>
+
+<main>
+  <header class="hero">
+    <div class="wrap">
+      <div class="tag">// 讲解型 · 单文件离线 · 无任何依赖</div>
+      <h1>Linux 命令 &amp; Vim<br>从入门到进阶</h1>
+      <p>不止告诉你"敲什么",更讲清"为什么这样敲、什么场景用、哪里最容易踩坑"。
+         面向每天在服务器上干活、但没系统学过的人。</p>
+    </div>
+  </header>
+<!-- ============ 1 ============ -->
+<section class="chapter" id="c1"><div class="wrap">
+  <h2><span class="h2num">01</span>如何用这份教程</h2>
+  <p class="lead">先约定几个贯穿全文的符号和自查习惯,后面就不再重复解释了。</p>
+
+  <h3>提示符:<code>$</code> 和 <code>#</code> 的区别</h3>
+  <p>你在终端里看到的行首符号叫<strong>提示符(prompt)</strong>。本教程的命令示例都以它开头,
+     但<strong>你复制时不要把它一起敲进去</strong>。两种最常见:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>符号</th><th>含义</th><th>典型完整提示符</th></tr></thead>
+    <tbody>
+      <tr><td><code>$</code></td><td>普通用户</td><td><code>user@server:~$</code></td></tr>
+      <tr><td><code>#</code></td><td><strong>root(超级用户)</strong>,权力最大,危险操作前务必看清</td><td><code>root@server:~#</code></td></tr>
+    </tbody>
+  </table></div>
+  <div class="box note"><span class="bt">📖 阅读约定</span>
+    <p>本文代码块里:<span style="color:var(--green)">绿色 <code>$</code></span> 是提示符(别敲);
+       <span style="color:var(--fg-faint)"><code># 灰色斜体</code></span> 是注释(给你看的说明,不是命令);
+       <span style="color:var(--fg-dim)">暗灰文字</span>是命令"跑出来的输出"。</p>
+  </div>
+
+  <h3>命令的通用结构</h3>
+  <div class="flow">
+    <span class="node hl">命令</span><span class="arr">+</span>
+    <span class="node">选项 -a --all</span><span class="arr">+</span>
+    <span class="node">参数(对象)</span>
+  </div>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">ls</span> <span class="fl">-l -a</span> /etc      <span class="cmt"># -l=长格式(每行一个,显示权限/大小/时间) -a=连隐藏文件也列出</span>
+<span class="pr">$</span> <span class="cm">ls</span> <span class="fl">-la</span> /etc         <span class="cmt"># 短选项可合并:-la 等价于 -l -a</span>
+<span class="pr">$</span> <span class="cm">ls</span> <span class="fl">--all</span> /etc        <span class="cmt"># --all 是 -a 的长写法;长选项用两个减号,通常更易读</span></pre></div>
+  <p class="lead" style="margin-top:8px">(每个选项具体干嘛,<a href="#c2">第 2 章</a>有完整的 <code>ls</code> 参数表;这里先看懂"命令 + 选项 + 对象"这个结构即可。)</p>
+  <ul>
+    <li><strong>短选项</strong>:单减号 + 单字母,可合并,如 <code>-la</code>。</li>
+    <li><strong>长选项</strong>:双减号 + 单词,如 <code>--all</code>;带值时写 <code>--width=80</code> 或 <code>--width 80</code>。</li>
+    <li><code>--</code> 单独出现表示"选项到此为止",后面即使以 <code>-</code> 开头也当普通参数(用来处理名字叫 <code>-foo</code> 的文件)。</li>
+  </ul>
+
+  <h3>不会用就自查:三件套</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>方式</th><th>用途</th><th>例子</th></tr></thead>
+    <tbody>
+      <tr><td><code>命令 --help</code></td><td>快速看选项清单,最常用</td><td><code>tar --help</code></td></tr>
+      <tr><td><code>man 命令</code></td><td>完整手册(用 <kbd>/</kbd> 搜索、<kbd>q</kbd> 退出)</td><td><code>man grep</code></td></tr>
+      <tr><td><code>tldr 命令</code></td><td>只给常用范例(需另装),比 man 友好</td><td><code>tldr tar</code></td></tr>
+    </tbody>
+  </table></div>
+  <div class="box tip"><span class="bt">💡 在 man 里怎么动</span>
+    <p>翻页 <kbd>Space</kbd> / <kbd>b</kbd>,搜索输入 <kbd>/</kbd> 再打关键词回车,<kbd>n</kbd> 跳下一个匹配,<kbd>q</kbd> 退出。
+       这套快捷键和后面 Vim、<code>less</code> 是相通的——学一次,处处能用。</p>
+  </div>
+
+  <div class="box warn"><span class="bt">⚠️ 三条保命习惯(贯穿全文)</span>
+    <p>① <code>rm</code> 没有回收站,删了就没了,尤其 <code>rm -rf</code>;
+       ② <code>&gt;</code> 会<strong>清空</strong>目标文件,想追加用 <code>&gt;&gt;</code>(详见第 3 章);
+       ③ 危险命令先把 <code>rm</code> 换成 <code>ls</code>/<code>echo</code> 跑一遍,确认匹配到的是你想要的东西,再真删。</p>
+  </div>
+</div></section>
+
+<!-- ============ 2 ============ -->
+<section class="chapter" id="c2"><div class="wrap">
+  <h2><span class="h2num">02</span>文件与目录基础</h2>
+  <p class="lead">你已经会 <code>cd</code>/<code>ls</code>,这里把"路径到底怎么写"和那些你一直没搞清的参数补齐。</p>
+
+  <h3>路径:绝对 vs 相对,以及几个特殊符号</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>写法</th><th>含义</th></tr></thead>
+    <tbody>
+      <tr><td><code>/etc/nginx</code></td><td><strong>绝对路径</strong>:从根 <code>/</code> 开始写全,在哪都指同一处</td></tr>
+      <tr><td><code>logs/app.log</code></td><td><strong>相对路径</strong>:相对你"当前所在目录"(用 <code>pwd</code> 看自己在哪)</td></tr>
+      <tr><td><code>.</code></td><td>当前目录</td></tr>
+      <tr><td><code>..</code></td><td>上一级目录(<code>cd ..</code> 退一层,<code>cd ../../</code> 退两层)</td></tr>
+      <tr><td><code>~</code></td><td>当前用户的家目录,等于 <code>/home/你</code>(root 是 <code>/root</code>)</td></tr>
+      <tr><td><code>-</code></td><td><code>cd -</code> = 回到上一个待过的目录(在两个目录间来回跳神器)</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>ls 的参数,逐个讲清</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>参数</th><th>作用</th></tr></thead>
+    <tbody>
+      <tr><td><code>-a</code></td><td><strong>显示隐藏文件</strong>。Linux 里以 <code>.</code> 开头的文件(如 <code>.bashrc</code>)默认不显示,<code>-a</code> 全列出</td></tr>
+      <tr><td><code>-l</code></td><td>长格式:一行一个,显示权限、大小、修改时间等</td></tr>
+      <tr><td><code>-h</code></td><td>配合 <code>-l</code>,把大小显示成 <code>4.0K</code>/<code>2.3M</code> 这种人类可读单位(human)</td></tr>
+      <tr><td><code>-t</code></td><td>按修改时间排序(最新在前),找"刚改过的文件"常用</td></tr>
+      <tr><td><code>-r</code></td><td>反转排序;<code>ls -ltr</code> = 按时间正序,最新的在最底下(看日志方便)</td></tr>
+      <tr><td><code>-S</code></td><td>按文件大小排序(大的在前)</td></tr>
+      <tr><td><code>-R</code></td><td>递归列出所有子目录</td></tr>
+      <tr><td><code>-d</code></td><td>只看目录本身,不展开里面内容(<code>ls -ld 目录</code>)</td></tr>
+    </tbody>
+  </table></div>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">ls</span> <span class="fl">-lah</span>
+<span class="out">total 28K</span>
+<span class="out">drwxr-xr-x  3 user user 4.0K Jun  7 10:20 .</span>
+<span class="out">drwxr-xr-x 12 user user 4.0K Jun  6 22:11 ..</span>
+<span class="out">-rw-r--r--  1 user user  220 Jun  7 09:55 .bashrc      </span><span class="cmt"># &lt;- 有 -a 才看得到</span>
+<span class="out">-rw-r--r--  1 user user 1.2K Jun  7 10:20 app.log</span></pre></div>
+  <div class="box note"><span class="bt">📖 那一行 <code>drwxr-xr-x</code> 是什么?</span>
+    <p>开头第一个字母:<code>d</code>=目录,<code>-</code>=普通文件,<code>l</code>=链接。后面 9 个字符是权限位,
+       第 7 章会专门拆解。第二列数字是链接数,接着是属主、属组、大小、时间、名字。</p>
+  </div>
+
+  <h3>tree:把目录画成树状图(超直观)</h3>
+  <p><code>ls</code> 只看一层、<code>ls -R</code> 递归但很乱;<code>tree</code> 把整个目录结构<strong>画成一棵树</strong>,层级关系一眼看清,
+     特别适合"刚进一个陌生项目,想先摸清结构"。</p>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">tree</span>
+<span class="out">.</span>
+<span class="out">├── README.md</span>
+<span class="out">├── src</span>
+<span class="out">│   ├── main.py</span>
+<span class="out">│   └── utils</span>
+<span class="out">│       └── helper.py</span>
+<span class="out">└── tests</span>
+<span class="out">    └── test_main.py</span>
+<span class="out"></span>
+<span class="out">3 directories, 4 files</span></pre></div>
+  <div class="box note"><span class="bt">📖 没装?一行装上</span>
+    <p><code>tree</code> 不是默认自带,提示 <code>command not found</code> 时安装:
+       Debian/Ubuntu <code>sudo apt install tree</code>、CentOS/RHEL <code>sudo yum install tree</code>、Mac <code>brew install tree</code>。</p>
+  </div>
+
+  <h4>常用参数</h4>
+  <div class="tbl"><table>
+    <thead><tr><th>参数</th><th>作用</th></tr></thead>
+    <tbody>
+      <tr><td><code>-L 2</code></td><td><strong>只展开 2 层</strong>(Level)。目录深时最有用,否则刷屏</td></tr>
+      <tr><td><code>-d</code></td><td>只显示目录,不列文件(看骨架)</td></tr>
+      <tr><td><code>-a</code></td><td>连隐藏文件(<code>.</code> 开头)也显示</td></tr>
+      <tr><td><code>-h</code></td><td>显示每个文件大小(human readable)</td></tr>
+      <tr><td><code>-f</code></td><td>每项显示完整相对路径(方便复制)</td></tr>
+      <tr><td><code>-I "模式"</code></td><td><strong>排除</strong>匹配的目录/文件,如 <code>-I "node_modules|.git"</code></td></tr>
+      <tr><td><code>--gitignore</code></td><td>按 <code>.gitignore</code> 规则自动忽略(新版本支持)</td></tr>
+    </tbody>
+  </table></div>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">tree</span> <span class="fl">-L</span> 2                       <span class="cmt"># 只看前两层,摸清项目骨架最常用</span>
+<span class="pr">$</span> <span class="cm">tree</span> <span class="fl">-d</span> <span class="fl">-L</span> 2                    <span class="cmt"># 只看目录、两层:一眼看清模块划分</span>
+<span class="pr">$</span> <span class="cm">tree</span> <span class="fl">-I</span> <span class="st">"node_modules|.git|__pycache__"</span>  <span class="cmt"># 排除噪音目录(否则会爆屏)</span>
+<span class="pr">$</span> <span class="cm">tree</span> <span class="fl">-ah</span> <span class="op">|</span> <span class="cm">less</span>                 <span class="cmt"># 太长就接 less 分页翻(见上表 less 用法)</span></pre></div>
+  <div class="box warn"><span class="bt">⚠️ 在大项目根目录别直接裸跑 tree</span>
+    <p><code>node_modules</code>、<code>.git</code> 这类目录文件成千上万,直接 <code>tree</code> 会刷屏好几分钟。
+       养成习惯:<strong>加 <code>-L 2</code> 限制深度</strong>,或用 <code>-I</code> 排除掉它们。</p>
+  </div>
+  <div class="box tip"><span class="bt">💡 顺手用法</span>
+    <p>把结构贴进文档/issue:<code>tree -L 2 &gt; structure.txt</code>(重定向见第 3 章)。
+       <code>tree</code> 默认就给目录加颜色,管道到文件时颜色会自动去掉,无需额外处理。</p>
+  </div>
+
+  <h3>增删改查的基本命令</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>命令</th><th>作用</th><th>常用形态</th></tr></thead>
+    <tbody>
+      <tr><td><code>pwd</code></td><td>打印当前目录绝对路径</td><td><code>pwd</code></td></tr>
+      <tr><td><code>mkdir</code></td><td>建目录;<code>-p</code> 一次建多层并忽略"已存在"</td><td><code>mkdir -p a/b/c</code></td></tr>
+      <tr><td><code>touch</code></td><td>建空文件,或更新已存在文件的时间戳</td><td><code>touch a.txt</code></td></tr>
+      <tr><td><code>cp</code></td><td>复制;目录要加 <code>-r</code>;<code>-i</code> 覆盖前询问</td><td><code>cp -r src/ dst/</code></td></tr>
+      <tr><td><code>mv</code></td><td>移动 / 重命名(同一目录内移动=改名)</td><td><code>mv old.txt new.txt</code></td></tr>
+      <tr><td><code>rm</code></td><td>删除;<code>-r</code> 删目录,<code>-f</code> 强制不问</td><td><code>rm -rf 临时目录</code></td></tr>
+      <tr><td><code>cat</code></td><td>把文件内容全部打印出来(适合短文件)</td><td><code>cat a.txt</code></td></tr>
+      <tr><td><code>less</code></td><td>分页看大文件(<kbd>/</kbd> 搜索、<kbd>q</kbd> 退出、<kbd>G</kbd> 跳末尾)</td><td><code>less big.log</code></td></tr>
+      <tr><td><code>head</code>/<code>tail</code></td><td>看头 / 尾若干行;<code>tail -f</code> 实时追日志</td><td><code>tail -f app.log</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>通配符(glob):* ? [ ]</h3>
+  <p>这是 <strong>shell 在执行前帮你把文件名补全展开</strong>的机制,注意它和第 4 章的"正则"<strong>不是一回事</strong>(最常见的混淆点)。</p>
+  <div class="tbl"><table>
+    <thead><tr><th>通配符</th><th>匹配</th><th>例子</th></tr></thead>
+    <tbody>
+      <tr><td><code>*</code></td><td>任意多个任意字符(含 0 个)</td><td><code>ls *.log</code> → 所有 .log 文件</td></tr>
+      <tr><td><code>?</code></td><td>恰好一个任意字符</td><td><code>ls log?.txt</code> → log1.txt、logA.txt</td></tr>
+      <tr><td><code>[abc]</code></td><td>方括号里任意一个字符</td><td><code>ls log[12].txt</code> → log1/log2</td></tr>
+      <tr><td><code>[0-9]</code></td><td>范围</td><td><code>ls 2024-[0-1][0-9].csv</code></td></tr>
+      <tr><td><code>{a,b}</code></td><td>大括号展开(逐项生成,非"匹配现有文件")</td><td><code>cp a.{txt,bak}</code></td></tr>
+    </tbody>
+  </table></div>
+  <div class="box warn"><span class="bt">⚠️ glob 和正则的核心区别</span>
+    <p>在 glob 里 <code>*</code> = "任意多字符";但在正则(grep)里 <code>*</code> = "前一个字符重复任意次",含义完全不同!
+       而且 glob 是<strong>谁来展开</strong>?是 shell——所以 <code>ls *.log</code> 其实是 shell 先把 <code>*.log</code>
+       换成真实文件名列表,再交给 <code>ls</code>。这也解释了:<strong>没有匹配文件时</strong>,
+       <code>*.log</code> 会原样传给命令,可能报"找不到 *.log"。</p>
+  </div>
+</div></section>
+
+<!-- ============ 3 ============ -->
+<section class="chapter" id="c3"><div class="wrap">
+  <h2><span class="h2num">03</span>管道与重定向 <span style="color:var(--green);font-size:16px">★</span></h2>
+  <p class="lead">你说"<code>|</code> <code>&gt;</code> <code>&gt;&gt;</code> 一知半解"——这一章就把它们彻底讲透。先建立一个心智模型。</p>
+
+  <h3>关键模型:每个命令都有 3 根"管子"</h3>
+  <p>任何命令运行时,系统都给它接了三根数据通道(就是所谓<strong>文件描述符</strong>,记住编号即可,底层细节不必深究):</p>
+  <div class="tbl"><table>
+    <thead><tr><th>编号</th><th>名字</th><th>默认接到哪</th><th>装什么</th></tr></thead>
+    <tbody>
+      <tr><td><code>0</code></td><td>stdin(标准输入)</td><td>你的键盘</td><td>命令的输入</td></tr>
+      <tr><td><code>1</code></td><td>stdout(标准输出)</td><td>屏幕</td><td><strong>正常结果</strong></td></tr>
+      <tr><td><code>2</code></td><td>stderr(标准错误)</td><td>屏幕</td><td><strong>报错信息</strong></td></tr>
+    </tbody>
+  </table></div>
+  <div class="box note"><span class="bt">📖 为什么要分 1 和 2?</span>
+    <p>正常结果和报错<strong>分两根管子</strong>走,你才能"只保存结果、错误另存",或"把结果传给下一个命令、错误仍打屏幕"。
+       这正是 <code>2&gt;</code>、<code>2&gt;&amp;1</code> 存在的意义。屏幕上你同时看到两者,但它们其实是分开的。</p>
+  </div>
+
+  <h3>重定向:把管子改接到文件</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>符号</th><th>作用</th><th>记忆</th></tr></thead>
+    <tbody>
+      <tr><td><code>&gt; file</code></td><td>把 stdout 写入文件,<strong>先清空再写</strong></td><td>覆盖</td></tr>
+      <tr><td><code>&gt;&gt; file</code></td><td>把 stdout <strong>追加</strong>到文件末尾</td><td>追加</td></tr>
+      <tr><td><code>&lt; file</code></td><td>把文件内容喂给命令的 stdin</td><td>读入</td></tr>
+      <tr><td><code>2&gt; file</code></td><td>只把<strong>错误</strong>写入文件</td><td>错误另存</td></tr>
+      <tr><td><code>2&gt;&amp;1</code></td><td>把错误"并入"标准输出那根管子</td><td>错误跟着结果走</td></tr>
+      <tr><td><code>&amp;&gt; file</code></td><td>结果 + 错误<strong>一起</strong>写入文件(等于 <code>&gt;file 2&gt;&amp;1</code>)</td><td>全都存</td></tr>
+      <tr><td><code>/dev/null</code></td><td>"黑洞"文件,丢进去的内容直接消失</td><td>扔掉</td></tr>
+    </tbody>
+  </table></div>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">echo</span> <span class="st">"第一行"</span> <span class="op">&gt;</span>  log.txt   <span class="cmt"># 写入(原内容被清空)</span>
+<span class="pr">$</span> <span class="cm">echo</span> <span class="st">"第二行"</span> <span class="op">&gt;&gt;</span> log.txt   <span class="cmt"># 追加,现在有两行</span>
+<span class="pr">$</span> <span class="cm">cat</span> log.txt
+<span class="out">第一行</span>
+<span class="out">第二行</span></pre></div>
+  <div class="box warn"><span class="bt">⚠️ 最常见的事故:<code>&gt;</code> 会清空文件</span>
+    <p><code>command &gt; file</code> 会在命令运行前就<strong>把 file 截断成 0 字节</strong>。
+       所以 <code>sort file &gt; file</code> 这种"原地处理"会直接<strong>清空 file</strong>(还没读就被清了)!
+       要原地改,得用临时文件或 <code>sed -i</code>。想保留旧内容,永远记得是 <code>&gt;&gt;</code> 不是 <code>&gt;</code>。</p>
+  </div>
+
+  <h4>把错误处理明白:2&gt; 和 2&gt;&amp;1</h4>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">find</span> / <span class="fl">-name</span> id_rsa <span class="op">2&gt;</span> /dev/null   <span class="cmt"># 结果打屏,"Permission denied"等错误丢黑洞</span>
+<span class="pr">$</span> <span class="cm">make</span> <span class="op">&gt;</span> build.log <span class="op">2&gt;&amp;1</span>                 <span class="cmt"># 结果和错误全写进 build.log</span>
+<span class="pr">$</span> <span class="cm">./run.sh</span> <span class="op">&gt;</span> out.log <span class="op">2&gt;</span> err.log        <span class="cmt"># 结果、错误分开两个文件</span></pre></div>
+  <div class="box warn"><span class="bt">⚠️ <code>2&gt;&amp;1</code> 的顺序陷阱</span>
+    <p><code>2&gt;&amp;1</code> 的意思是"让 2 号管子,接到 1 号<strong>此刻</strong>所指的地方"。所以顺序很重要:</p>
+    <p><code>cmd &gt;file 2&gt;&amp;1</code> ✅ → 先把 1 指向 file,再让 2 也指向 file(都进文件)。<br>
+       <code>cmd 2&gt;&amp;1 &gt;file</code> ❌ → 先让 2 指向"当前的 1=屏幕",之后才把 1 改到 file。结果:错误还在屏幕,只有正常输出进了文件。</p>
+  </div>
+
+  <h3>管道 <code>|</code>:把上一个的 stdout 接到下一个的 stdin</h3>
+  <p>这是 Linux 的灵魂。<code>|</code> 不经过磁盘文件,直接把左边命令的<strong>标准输出</strong>,当作右边命令的<strong>标准输入</strong>。</p>
+  <div class="flow">
+    <span class="node">ls -l</span>
+    <span class="arr">│ stdout→stdin</span>
+    <span class="node">grep .log</span>
+    <span class="arr">│</span>
+    <span class="node">wc -l</span>
+    <span class="arr">→</span>
+    <span class="node hl">结果</span>
+  </div>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">ls</span> <span class="fl">-l</span> <span class="op">|</span> <span class="cm">grep</span> <span class="st">'.log'</span> <span class="op">|</span> <span class="cm">wc</span> <span class="fl">-l</span>
+<span class="out">3</span>                                  <span class="cmt"># 列目录 → 只留含 .log 的行 → 数行数 = 有 3 个</span></pre></div>
+  <div class="box note"><span class="bt">📖 管道只传 stdout(1 号)</span>
+    <p>错误(2 号)默认<strong>不进管道</strong>,会直接打在屏幕上。想让错误也一起流过管道,要写
+       <code>cmd 2&gt;&amp;1 | next</code>(把 2 并入 1,管道才带得走它)。</p>
+  </div>
+
+  <h3>三个高频配角:tee、xargs、&lt;&lt;&lt;</h3>
+  <h4><code>tee</code> —— 一边存文件,一边继续往下传</h4>
+  <p>名字来自水管的 T 形三通:数据流到这里分两路。常用于"既要看/继续处理,又要留存"。</p>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">make</span> <span class="op">2&gt;&amp;1</span> <span class="op">|</span> <span class="cm">tee</span> build.log <span class="op">|</span> <span class="cm">grep</span> <span class="st">error</span>
+<span class="cmt"># 完整输出存进 build.log,同时只把含 error 的行显示在屏幕</span>
+<span class="pr">$</span> <span class="cm">echo</span> <span class="st">"hi"</span> <span class="op">|</span> <span class="cm">sudo</span> <span class="cm">tee</span> <span class="fl">-a</span> /etc/hosts   <span class="cmt"># 用 sudo 往受保护文件追加(-a=追加)</span></pre></div>
+  <div class="box tip"><span class="bt">💡 为什么 <code>sudo echo "x" &gt;&gt; /etc/file</code> 不行?</span>
+    <p>因为重定向 <code>&gt;&gt;</code> 是 <strong>shell 做的</strong>,而 shell 是普通权限,sudo 只提升了 echo。
+       正确做法就是上面的 <code>... | sudo tee -a 文件</code>——让有 root 权限的 tee 去写。</p>
+  </div>
+
+  <h4><code>xargs</code> —— 把"一串文本"变成"命令的参数"</h4>
+  <p>有些命令(如 <code>rm</code>、<code>kill</code>)<strong>只认参数,不读 stdin</strong>。<code>xargs</code> 负责把管道里的文本,拼成它们的参数。</p>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">find</span> . <span class="fl">-name</span> <span class="st">'*.tmp'</span> <span class="op">|</span> <span class="cm">xargs</span> <span class="cm">rm</span>          <span class="cmt"># 把找到的文件名拼给 rm 删掉</span>
+<span class="pr">$</span> <span class="cm">find</span> . <span class="fl">-name</span> <span class="st">'*.tmp'</span> <span class="fl">-print0</span> <span class="op">|</span> <span class="cm">xargs</span> <span class="fl">-0</span> <span class="cm">rm</span>  <span class="cmt"># 文件名有空格时的安全写法</span></pre></div>
+  <div class="box warn"><span class="bt">⚠️ 文件名带空格会出事</span>
+    <p>默认 <code>xargs</code> 按空格/换行切分,文件名 <code>my file.tmp</code> 会被当成两个参数。
+       配对使用 <code>find -print0</code> 和 <code>xargs -0</code>(用不可见的 NUL 字符分隔),就万无一失。详见第 14 章。</p>
+  </div>
+
+  <h4>这些都是"喂输入"的近亲</h4>
+  <div class="tbl"><table>
+    <thead><tr><th>写法</th><th>含义</th></tr></thead>
+    <tbody>
+      <tr><td><code>cmd &lt; file</code></td><td>把文件当输入</td></tr>
+      <tr><td><code>cmd &lt;&lt; EOF ... EOF</code></td><td>here-doc:多行文本直接喂给命令(写配置/邮件正文常用)</td></tr>
+      <tr><td><code>cmd &lt;&lt;&lt; "字符串"</code></td><td>here-string:把一个字符串当输入,如 <code>grep foo &lt;&lt;&lt; "$var"</code></td></tr>
+    </tbody>
+  </table></div>
+</div></section>
+
+<!-- ============ 4 ============ -->
+<section class="chapter" id="c4"><div class="wrap">
+  <h2><span class="h2num">04</span>grep 与正则 <span style="color:var(--green);font-size:16px">★</span></h2>
+  <p class="lead">你说"知道 grep 能抓匹配项,但不清楚怎么匹配"——核心就是<strong>正则表达式</strong>。这一章把规则讲全。</p>
+
+  <h3>grep 是什么:逐行筛选</h3>
+  <p>grep 把输入<strong>一行一行</strong>地看,只要某行"包含"匹配的内容,就把<strong>整行</strong>打印出来。它可以读文件,也可以接在管道后面。</p>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">grep</span> <span class="st">"error"</span> app.log          <span class="cmt"># 从文件里筛出含 error 的行</span>
+<span class="pr">$</span> <span class="cm">ps</span> aux <span class="op">|</span> <span class="cm">grep</span> <span class="st">"nginx"</span>        <span class="cmt"># 从上一个命令的输出里筛</span></pre></div>
+
+  <h3>grep 的常用参数</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>参数</th><th>作用</th></tr></thead>
+    <tbody>
+      <tr><td><code>-i</code></td><td>忽略大小写(Error / ERROR / error 都匹配)</td></tr>
+      <tr><td><code>-v</code></td><td><strong>反选</strong>:打印"不匹配"的行(排除噪音常用)</td></tr>
+      <tr><td><code>-n</code></td><td>显示行号</td></tr>
+      <tr><td><code>-r</code> / <code>-R</code></td><td>递归搜整个目录(替代你"用 VSCode 全局搜")</td></tr>
+      <tr><td><code>-c</code></td><td>只输出匹配的<strong>行数</strong>(count)</td></tr>
+      <tr><td><code>-o</code></td><td>只打印<strong>匹配到的那部分</strong>,不是整行(配正则提取很有用)</td></tr>
+      <tr><td><code>-l</code></td><td>只列出"哪些文件里有",不显示具体行</td></tr>
+      <tr><td><code>-w</code></td><td>整词匹配(<code>grep -w cat</code> 不会匹配 category)</td></tr>
+      <tr><td><code>-A 3</code>/<code>-B 3</code>/<code>-C 3</code></td><td>同时显示匹配行的后(After)/前(Before)/前后(Context)3 行</td></tr>
+      <tr><td><code>-E</code></td><td>用<strong>扩展正则(ERE)</strong>,少打很多反斜杠(强烈推荐)</td></tr>
+    </tbody>
+  </table></div>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">grep</span> <span class="fl">-rn</span> <span class="st">"TODO"</span> src/             <span class="cmt"># 在 src/ 里递归找 TODO,带文件名和行号</span>
+<span class="pr">$</span> <span class="cm">grep</span> <span class="fl">-i</span> <span class="st">"error"</span> app.log <span class="op">|</span> <span class="cm">grep</span> <span class="fl">-v</span> <span class="st">"timeout"</span>  <span class="cmt"># 要 error 但排除 timeout</span>
+<span class="pr">$</span> <span class="cm">grep</span> <span class="fl">-C</span> 2 <span class="st">"panic"</span> app.log       <span class="cmt"># 出错那行的前后各 2 行,看上下文</span></pre></div>
+
+  <h3>正则表达式:到底怎么"匹配"</h3>
+  <p>正则就是用一套"元字符"描述<strong>一类字符串的模式</strong>。先记住:普通字符匹配它自己,而下面这些字符有特殊含义。</p>
+  <div class="tbl"><table>
+    <thead><tr><th>元字符</th><th>含义</th><th>例子 → 匹配</th></tr></thead>
+    <tbody>
+      <tr><td><code>.</code></td><td>任意<strong>一个</strong>字符</td><td><code>a.c</code> → abc、axc、a9c</td></tr>
+      <tr><td><code>*</code></td><td><strong>前一个</strong>东西重复 0 次或多次</td><td><code>ab*c</code> → ac、abc、abbbc</td></tr>
+      <tr><td><code>+</code></td><td>前一个重复 <strong>1 次或多次</strong>(需 <code>-E</code>)</td><td><code>ab+c</code> → abc、abbc(不含 ac)</td></tr>
+      <tr><td><code>?</code></td><td>前一个出现 <strong>0 或 1 次</strong>(需 <code>-E</code>)</td><td><code>colou?r</code> → color、colour</td></tr>
+      <tr><td><code>^</code></td><td><strong>行首</strong>锚点</td><td><code>^ERROR</code> → 以 ERROR 开头的行</td></tr>
+      <tr><td><code>$</code></td><td><strong>行尾</strong>锚点</td><td><code>;$</code> → 以分号结尾的行</td></tr>
+      <tr><td><code>[abc]</code></td><td>方括号内任意一个</td><td><code>[Gg]rep</code> → Grep、grep</td></tr>
+      <tr><td><code>[^abc]</code></td><td>方括号内<strong>取反</strong>(非 a/b/c)</td><td><code>[^0-9]</code> → 任意非数字</td></tr>
+      <tr><td><code>[a-z]</code></td><td>范围</td><td><code>[a-zA-Z0-9]</code> → 字母数字</td></tr>
+      <tr><td><code>\</code></td><td>转义,让元字符变回普通字符</td><td><code>3\.14</code> → 字面的 3.14</td></tr>
+      <tr><td><code>{2,4}</code></td><td>前一个重复 2 到 4 次(需 <code>-E</code>)</td><td><code>[0-9]{3}</code> → 恰好 3 位数字</td></tr>
+      <tr><td><code>(ab)+</code></td><td>分组(需 <code>-E</code>)</td><td><code>(ab)+</code> → ab、abab</td></tr>
+      <tr><td><code>a|b</code></td><td>或(需 <code>-E</code>)</td><td><code>cat|dog</code> → cat 或 dog</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="box warn"><span class="bt">⚠️ BRE vs ERE:为什么有时要加反斜杠</span>
+    <p>grep 默认用<strong>基础正则(BRE)</strong>,里面 <code>+ ? { } ( ) |</code> <strong>是普通字符</strong>,
+       想用它们的"特殊含义"得加反斜杠:<code>\+ \? \{ \} \( \) \|</code>。<br>
+       加上 <code>-E</code> 切到<strong>扩展正则(ERE)</strong>后,这些直接生效、<strong>不用反斜杠</strong>。
+       建议:<strong>凡是用到 <code>+ ? | () {}</code> 就加 <code>-E</code></strong>,省心很多。</p>
+    <p style="margin-top:8px">对比:<code>grep -E "ab+c"</code> 等价于 <code>grep "ab\+c"</code>。</p>
+  </div>
+
+  <h4>字符类(POSIX,方便又可读)</h4>
+  <div class="tbl"><table>
+    <thead><tr><th>写法</th><th>等价于</th></tr></thead>
+    <tbody>
+      <tr><td><code>[[:digit:]]</code></td><td><code>[0-9]</code> 数字</td></tr>
+      <tr><td><code>[[:alpha:]]</code></td><td><code>[a-zA-Z]</code> 字母</td></tr>
+      <tr><td><code>[[:alnum:]]</code></td><td>字母 + 数字</td></tr>
+      <tr><td><code>[[:space:]]</code></td><td>空白(空格、Tab 等)</td></tr>
+      <tr><td><code>[[:upper:]]</code>/<code>[[:lower:]]</code></td><td>大写 / 小写字母</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>"这个模式匹配什么"——读这张表练眼力</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>命令</th><th>找的是</th></tr></thead>
+    <tbody>
+      <tr><td><code>grep -E "^[0-9]+$"</code></td><td>整行<strong>只有数字</strong>的行(<code>^</code>开头 <code>$</code>结尾夹住)</td></tr>
+      <tr><td><code>grep -E "^\s*#"</code></td><td>注释行(开头可有空白,然后是 <code>#</code>)</td></tr>
+      <tr><td><code>grep -E "^$"</code></td><td>空行</td></tr>
+      <tr><td><code>grep -vE "^\s*(#|$)"</code></td><td>去掉注释行和空行(看配置文件神器)</td></tr>
+      <tr><td><code>grep -oE "[0-9]{1,3}(\.[0-9]{1,3}){3}"</code></td><td>从文本里<strong>提取所有 IP 地址</strong></td></tr>
+      <tr><td><code>grep -oE "\w+@\w+\.\w+"</code></td><td>粗略提取邮箱</td></tr>
+      <tr><td><code>grep -E "error|fail|panic"</code></td><td>含任一关键词的行</td></tr>
+    </tbody>
+  </table></div>
+  <div class="box tip"><span class="bt">💡 提取而不是整行:<code>-o</code> + <code>-E</code></span>
+    <p>默认 grep 给你整行。加 <code>-o</code> 就只吐出"匹配到的片段",特别适合从一大段文本里<strong>抠出 IP、邮箱、版本号</strong>。
+       常接着 <code>| sort | uniq -c | sort -rn</code> 做统计(第 14 章会用到)。</p>
+  </div>
+</div></section>
+
+<!-- ============ 5 ============ -->
+<section class="chapter" id="c5"><div class="wrap">
+  <h2><span class="h2num">05</span>文本三剑客与切分工具</h2>
+  <p class="lead">grep 负责"筛行",而 cut/sort/uniq/sed/awk 负责"切列、排序、去重、替换、算字段"。组合起来威力巨大。</p>
+
+  <h3>小工具:cut / sort / uniq / wc / tr</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>命令</th><th>作用</th><th>例子</th></tr></thead>
+    <tbody>
+      <tr><td><code>cut</code></td><td>按分隔符切列。<code>-d</code> 定分隔符、<code>-f</code> 选第几列</td><td><code>cut -d: -f1 /etc/passwd</code> → 所有用户名</td></tr>
+      <tr><td><code>sort</code></td><td>排序。<code>-n</code> 按数字、<code>-r</code> 倒序、<code>-h</code> 按 4K/2M、<code>-k2</code> 按第 2 列、<code>-u</code> 排序兼去重</td><td><code>sort -rn nums.txt</code></td></tr>
+      <tr><td><code>uniq</code></td><td><strong>去重相邻重复行</strong>(所以前面常先 sort)。<code>-c</code> 计数、<code>-d</code> 只看重复的</td><td><code>sort x | uniq -c</code></td></tr>
+      <tr><td><code>wc</code></td><td>统计。<code>-l</code> 行数、<code>-w</code> 词数、<code>-c</code> 字节</td><td><code>wc -l file</code></td></tr>
+      <tr><td><code>tr</code></td><td>逐字符替换/删除。常用大小写转换、压缩空白</td><td><code>tr 'a-z' 'A-Z'</code></td></tr>
+    </tbody>
+  </table></div>
+  <div class="box warn"><span class="bt">⚠️ <code>uniq</code> 只去"相邻"重复</span>
+    <p><code>uniq</code> 不会全局去重,只合并<strong>挨在一起</strong>的相同行。所以几乎总是写成 <code>sort | uniq</code>,
+       或直接 <code>sort -u</code>。"统计每项出现几次"的黄金搭配是 <code>sort | uniq -c | sort -rn</code>。</p>
+  </div>
+
+  <h3>sed —— 流式编辑(最常用:替换)</h3>
+  <p>sed 逐行处理文本,最高频用途是"查找替换",语法 <code>s/旧/新/</code>(substitute)。</p>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">sed</span> <span class="st">'s/foo/bar/'</span> file        <span class="cmt"># 每行第一个 foo → bar(结果打屏,不改原文件)</span>
+<span class="pr">$</span> <span class="cm">sed</span> <span class="st">'s/foo/bar/g'</span> file       <span class="cmt"># g = 全局,一行里所有 foo 都换</span>
+<span class="pr">$</span> <span class="cm">sed</span> <span class="fl">-i</span> <span class="st">'s/foo/bar/g'</span> file    <span class="cmt"># -i = 直接改原文件(in-place)</span>
+<span class="pr">$</span> <span class="cm">sed</span> <span class="fl">-i.bak</span> <span class="st">'s/foo/bar/g'</span> file <span class="cmt"># 改之前先备份成 file.bak,更稳</span>
+<span class="pr">$</span> <span class="cm">sed</span> <span class="st">'/^#/d'</span> file            <span class="cmt"># 删除所有注释行(/模式/d)</span>
+<span class="pr">$</span> <span class="cm">sed</span> <span class="fl">-n</span> <span class="st">'10,20p'</span> file        <span class="cmt"># 只打印第 10~20 行(-n 静默 + p 打印)</span></pre></div>
+  <div class="box tip"><span class="bt">💡 分隔符可换</span>
+    <p>替换路径时斜杠会打架,可把分隔符换成别的字符:<code>sed 's#/old/path#/new/path#g'</code>,清爽很多。
+       sed 默认用 BRE,想用 <code>+ ?</code> 等加 <code>-E</code>。</p>
+  </div>
+
+  <h3>awk —— 按"列/字段"处理的利器</h3>
+  <p>awk 自动把每行按空白切成字段:<code>$1</code> 第一列、<code>$2</code> 第二列……<code>$0</code> 整行,<code>NF</code> 字段总数,<code>NR</code> 行号。</p>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">awk</span> <span class="st">'{print $1}'</span> access.log         <span class="cmt"># 打印每行第 1 列(如访问 IP)</span>
+<span class="pr">$</span> <span class="cm">awk</span> <span class="st">'{print $1, $NF}'</span> file          <span class="cmt"># 第 1 列和最后一列($NF)</span>
+<span class="pr">$</span> <span class="cm">awk</span> <span class="fl">-F:</span> <span class="st">'{print $1}'</span> /etc/passwd   <span class="cmt"># -F 指定分隔符为冒号</span>
+<span class="pr">$</span> <span class="cm">awk</span> <span class="st">'$3 &gt; 100'</span> data.txt             <span class="cmt"># 只输出第 3 列 &gt; 100 的行(条件过滤)</span>
+<span class="pr">$</span> <span class="cm">awk</span> <span class="st">'/error/ {print $2}'</span> app.log     <span class="cmt"># 含 error 的行,打印第 2 列</span>
+<span class="pr">$</span> <span class="cm">awk</span> <span class="st">'{sum += $1} END {print sum}'</span> n.txt <span class="cmt"># 把第 1 列累加求和</span></pre></div>
+  <div class="box note"><span class="bt">📖 什么时候用 cut,什么时候用 awk?</span>
+    <p>分隔符固定、只想取某几列 → <code>cut</code> 更简单。但当<strong>列之间是多个空格/Tab 混合</strong>
+       (如 <code>ps</code>、<code>ls -l</code> 的输出),<code>cut</code> 会数错,<strong>awk 更稳</strong>——它默认把连续空白当一个分隔符。
+       需要条件判断、求和、用最后一列时也选 awk。</p>
+  </div>
+</div></section>
+
+<!-- ============ 6 ============ -->
+<section class="chapter" id="c6"><div class="wrap">
+  <h2><span class="h2num">06</span>find 实战 <span style="color:var(--green);font-size:16px">★</span></h2>
+  <p class="lead">你说习惯用 VSCode 连服务器搜文件——其实 <code>find</code> 在终端里更快、更强,还能"找到后直接批量处理"。这章按场景讲。</p>
+
+  <h3>基本结构</h3>
+  <div class="flow">
+    <span class="node hl">find</span><span class="arr">+</span>
+    <span class="node">从哪找(路径)</span><span class="arr">+</span>
+    <span class="node">条件(名字/类型/时间…)</span><span class="arr">+</span>
+    <span class="node">对结果做什么</span>
+  </div>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">find</span> . <span class="fl">-name</span> <span class="st">"*.log"</span>     <span class="cmt"># 在当前目录(.)递归找所有 .log 文件</span>
+<span class="pr">$</span> <span class="cm">find</span> /var/log <span class="fl">-name</span> <span class="st">"*.gz"</span>  <span class="cmt"># 从 /var/log 开始找</span></pre></div>
+  <div class="box warn"><span class="bt">⚠️ 通配符一定要加引号</span>
+    <p><code>find . -name *.log</code> 不加引号,shell 会<strong>先把 <code>*.log</code> 展开成当前目录的文件名</strong>再传给 find,行为出错。
+       永远写成 <code>-name "*.log"</code>,让 find 自己去匹配每一层。</p>
+  </div>
+
+  <h3>常用条件</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>条件</th><th>含义</th></tr></thead>
+    <tbody>
+      <tr><td><code>-name "*.py"</code></td><td>按名字(区分大小写),支持通配符</td></tr>
+      <tr><td><code>-iname "*.PY"</code></td><td>同上但<strong>忽略大小写</strong></td></tr>
+      <tr><td><code>-type f</code> / <code>-type d</code></td><td>只要文件(f)/ 只要目录(d)</td></tr>
+      <tr><td><code>-mtime -7</code></td><td>修改时间在 <strong>7 天内</strong>(<code>+7</code> 表示 7 天前,<code>7</code> 表示恰好第 7 天)</td></tr>
+      <tr><td><code>-mmin -30</code></td><td>30 分钟内改过</td></tr>
+      <tr><td><code>-newer 文件</code></td><td>比某个文件更新</td></tr>
+      <tr><td><code>-size +100M</code></td><td>大于 100M(<code>-size -1k</code> = 小于 1k)</td></tr>
+      <tr><td><code>-empty</code></td><td>空文件或空目录</td></tr>
+      <tr><td><code>-path "*/node_modules/*" -prune</code></td><td>排除某些目录,不进去找</td></tr>
+      <tr><td><code>-maxdepth 2</code></td><td>最多往下找 2 层(放在条件最前面)</td></tr>
+    </tbody>
+  </table></div>
+  <div class="codeblock"><pre><span class="cmt"># 找最近一天改过的 .py 文件</span>
+<span class="pr">$</span> <span class="cm">find</span> . <span class="fl">-name</span> <span class="st">"*.py"</span> <span class="fl">-mtime</span> <span class="op">-1</span>
+
+<span class="cmt"># 找大于 100M 的文件(清理磁盘前先看看谁在占空间)</span>
+<span class="pr">$</span> <span class="cm">find</span> . <span class="fl">-type</span> f <span class="fl">-size</span> <span class="op">+100M</span>
+
+<span class="cmt"># 搜代码但跳过 node_modules 和 .git</span>
+<span class="pr">$</span> <span class="cm">find</span> . <span class="fl">-path</span> <span class="st">"*/node_modules/*"</span> <span class="fl">-prune</span> <span class="fl">-o</span> <span class="fl">-name</span> <span class="st">"*.js"</span> <span class="fl">-print</span></pre></div>
+
+  <h3>找到之后:做点什么(find 的精华)</h3>
+  <p>找出来只是第一步,真正强大的是<strong>对每个结果执行命令</strong>。两种方式:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>写法</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><code>-exec cmd {} \;</code></td><td><code>{}</code> 代表每个找到的文件,<strong>逐个</strong>执行(<code>\;</code> 结尾,注意空格)</td></tr>
+      <tr><td><code>-exec cmd {} +</code></td><td>把多个文件<strong>一次性</strong>拼给命令(更快)</td></tr>
+      <tr><td><code>-delete</code></td><td>find 自带的删除,比 <code>-exec rm</code> 更安全(不怕空格)</td></tr>
+      <tr><td><code>... -print0 | xargs -0 cmd</code></td><td>交给 xargs 批量处理,对超多文件更高效</td></tr>
+    </tbody>
+  </table></div>
+  <div class="codeblock"><pre><span class="cmt"># 在所有 .conf 文件里找含 "listen" 的行(find 替代 VSCode 全局搜内容!)</span>
+<span class="pr">$</span> <span class="cm">find</span> /etc <span class="fl">-name</span> <span class="st">"*.conf"</span> <span class="fl">-exec</span> <span class="cm">grep</span> <span class="fl">-l</span> <span class="st">"listen"</span> {} <span class="op">+</span>
+
+<span class="cmt"># 删除 7 天前的临时日志(先把 -delete 换成 -print 预览,确认无误再删!)</span>
+<span class="pr">$</span> <span class="cm">find</span> /tmp <span class="fl">-name</span> <span class="st">"*.log"</span> <span class="fl">-mtime</span> <span class="op">+7</span> <span class="fl">-print</span>     <span class="cmt"># 先看</span>
+<span class="pr">$</span> <span class="cm">find</span> /tmp <span class="fl">-name</span> <span class="st">"*.log"</span> <span class="fl">-mtime</span> <span class="op">+7</span> <span class="fl">-delete</span>    <span class="cmt"># 再删</span>
+
+<span class="cmt"># 给所有 .sh 加可执行权限</span>
+<span class="pr">$</span> <span class="cm">find</span> . <span class="fl">-name</span> <span class="st">"*.sh"</span> <span class="fl">-exec</span> <span class="cm">chmod</span> <span class="fl">+x</span> {} <span class="op">+</span></pre></div>
+
+  <div class="box tip"><span class="bt">💡 find vs grep -r vs VSCode 搜索</span>
+    <p><strong>按文件名/属性找文件</strong> → <code>find</code>;<strong>按文件内容找</strong> → <code>grep -rn "关键词" .</code>;
+       两者结合 → <code>find … -exec grep …</code>。一旦上手,你会发现在 SSH 里几秒就搞定,比开 VSCode 连接快得多。
+       (还有更快的现代替代:<code>fd</code> 找文件、<code>rg</code>/ripgrep 找内容,若服务器装了的话。)</p>
+  </div>
+  <div class="box warn"><span class="bt">⚠️ <code>-exec rm</code> 前永远先 <code>-print</code></span>
+    <p>批量删除是高危操作。养成习惯:<strong>先用 <code>-print</code>(或把命令换成 <code>echo</code>/<code>ls</code>)看清楚匹配到哪些</strong>,
+       眼睛确认无误,再把动作换成 <code>-delete</code> 或 <code>rm</code>。多打一条命令,换一夜安稳觉。</p>
+  </div>
+</div></section>
+
+<!-- ============ 7 ============ -->
+<section class="chapter" id="c7"><div class="wrap">
+  <h2><span class="h2num">07</span>权限 · 进程 · 信号 · 磁盘</h2>
+  <p class="lead">权限位读懂了不再发怵,杀进程知道该用哪种信号、何时才动 <code>kill -9</code>。</p>
+
+  <h3>权限位:<code>rwxr-xr-x</code> 怎么读</h3>
+  <p><code>ls -l</code> 开头那 10 个字符:第 1 个是类型,后 9 个分三组,分别给<strong>属主 / 属组 / 其他人</strong>。</p>
+  <div class="codeblock"><pre>  <span class="cm">d</span>  <span class="va">rwx</span>  <span class="st">r-x</span>  <span class="fl">r-x</span>
+  │   │    │    └─ 其他人(others):可读可执行,不可写
+  │   │    └────── 同组用户(group):可读可执行
+  │   └─────────── 属主(user):可读可写可执行
+  └─────────────── 类型:d=目录 -=文件 l=链接</pre></div>
+  <div class="tbl"><table>
+    <thead><tr><th>权限</th><th>对文件</th><th>对目录</th><th>数字</th></tr></thead>
+    <tbody>
+      <tr><td><code>r</code> 读</td><td>看内容</td><td>列出里面有啥(<code>ls</code>)</td><td>4</td></tr>
+      <tr><td><code>w</code> 写</td><td>改内容</td><td>增删里面的文件</td><td>2</td></tr>
+      <tr><td><code>x</code> 执行</td><td>运行它</td><td><strong>能进入</strong>该目录(cd)</td><td>1</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>chmod:改权限的两种写法</h3>
+  <p><strong>数字法</strong>:每组把 r=4、w=2、x=1 相加。<code>rwx</code>=7、<code>r-x</code>=5、<code>rw-</code>=6、<code>r--</code>=4。</p>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">chmod</span> <span class="fl">755</span> script.sh   <span class="cmt"># rwxr-xr-x 属主全权,其他人可读可执行(脚本/程序常用)</span>
+<span class="pr">$</span> <span class="cm">chmod</span> <span class="fl">644</span> notes.txt   <span class="cmt"># rw-r--r-- 属主可改,别人只读(普通文件常用)</span>
+<span class="pr">$</span> <span class="cm">chmod</span> <span class="fl">600</span> id_rsa      <span class="cmt"># rw------- 只有自己能读写(私钥必须这样)</span>
+<span class="cmt"># 符号法:谁(u/g/o/a)+加/减/设(+/-/=)+权限(rwx)</span>
+<span class="pr">$</span> <span class="cm">chmod</span> <span class="fl">+x</span> run.sh       <span class="cmt"># 给所有人加执行权(最常用)</span>
+<span class="pr">$</span> <span class="cm">chmod</span> <span class="fl">go-w</span> file      <span class="cmt"># 去掉同组和其他人的写权限</span></pre></div>
+  <div class="box warn"><span class="bt">⚠️ SSH 私钥权限太松会被拒绝登录</span>
+    <p>如果 <code>~/.ssh/id_rsa</code> 权限不是 <code>600</code>(别人也能读),ssh 会直接报
+       "permissions are too open" 拒绝使用。修复:<code>chmod 600 ~/.ssh/id_rsa</code>。</p>
+  </div>
+
+  <h3>属主与属组:文件"归谁"——chown</h3>
+  <p>权限位(rwx)只是规则,<strong>规则作用在谁身上,取决于这个文件"属于谁"</strong>。每个文件都有两个归属:</p>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">ls</span> <span class="fl">-l</span> app.log
+<span class="out">-rw-r--r--  1  </span><span class="va">alice</span><span class="out">  </span><span class="st">devops</span><span class="out">  1.2K Jun  7 10:20 app.log</span>
+                  │       └─ <span class="st">属组(group)</span>:devops 组的成员,适用"组"那一段权限(r--)
+                  └───────── <span class="va">属主(owner/user)</span>:alice,适用"属主"那一段权限(rw-)
+<span class="cmt"># 不是 alice、也不在 devops 组的人 → 走最后一段"其他人"(r--)</span></pre></div>
+  <div class="box note"><span class="bt">📖 权限判定的顺序</span>
+    <p>系统看你是谁:<strong>① 你是属主吗?</strong>是 → 用属主那 3 位,<strong>判定结束</strong>(哪怕组/其他更宽也不管)。
+       ② 否则你在属组里吗?是 → 用组那 3 位。③ 都不是 → 用"其他人"那 3 位。
+       所以"我明明在组里却不能写"可能是因为<strong>你恰好是属主,而属主那段没给 w</strong>。</p>
+  </div>
+
+  <h4>chown:改归属</h4>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">sudo</span> <span class="cm">chown</span> alice file           <span class="cmt"># 只改属主 → alice</span>
+<span class="pr">$</span> <span class="cm">sudo</span> <span class="cm">chown</span> alice:devops file    <span class="cmt"># 同时改属主和属组(冒号分隔)</span>
+<span class="pr">$</span> <span class="cm">sudo</span> <span class="cm">chown</span> :devops file          <span class="cmt"># 只改属组(冒号开头);等价于 chgrp devops file</span>
+<span class="pr">$</span> <span class="cm">sudo</span> <span class="cm">chown</span> <span class="fl">-R</span> alice:alice /var/www  <span class="cmt"># -R 递归:整个目录树都改归属(最常用)</span>
+<span class="pr">$</span> <span class="cm">sudo</span> <span class="cm">chown</span> <span class="fl">--reference</span>=好文件 坏文件  <span class="cmt"># 照着某个文件的归属来设(对不齐时方便)</span></pre></div>
+  <div class="box warn"><span class="bt">⚠️ chown 几乎总要 sudo</span>
+    <p>普通用户<strong>不能</strong>把自己的文件"送"给别人,也不能随便认领别人的文件——改归属基本是 root 的特权,
+       所以 <code>chown</code> 前面通常得加 <code>sudo</code>。(改属组若目标组是你所属的组,可不用 sudo。)</p>
+  </div>
+
+  <h4>你最常撞上的几个场景</h4>
+  <div class="tbl"><table>
+    <thead><tr><th>现象</th><th>原因 &amp; 解法</th></tr></thead>
+    <tbody>
+      <tr><td>用 <code>sudo</code> 建的文件,之后自己改不了 / git 报权限错</td><td>那文件属主成了 <strong>root</strong>。<code>sudo chown -R $USER:$USER 目录</code> 收回归属(<code>$USER</code> 是你当前用户名)</td></tr>
+      <tr><td>scp / 解压 / clone 下来一堆文件,属主乱了</td><td>统一归到自己名下:<code>sudo chown -R $USER:$USER ./项目</code></td></tr>
+      <tr><td>部署网站,Nginx/PHP 读不到文件(403)</td><td>把目录交给 Web 服务用户:<code>sudo chown -R www-data:www-data /var/www/site</code></td></tr>
+      <tr><td>明明 <code>chmod 777</code> 了还 Permission denied</td><td>权限够但<strong>归属/上层目录</strong>不对;先 <code>ls -l</code> 看属主是谁、<code>ls -ld 父目录</code> 看进得去吗</td></tr>
+    </tbody>
+  </table></div>
+  <div class="box tip"><span class="bt">💡 chmod 改"能不能"、chown 改"归谁"</span>
+    <p>两个常一起用但别搞混:<strong>chmod</strong> 调的是 rwx <strong>权限</strong>,<strong>chown</strong> 调的是属主/属组 <strong>归属</strong>。
+       遇到 "Permission denied",先 <code>ls -l</code> 看清楚——是<strong>权限位不够</strong>(用 chmod),还是<strong>文件不归你</strong>(用 sudo chown)。
+       另:<code>umask</code> 决定你<strong>新建</strong>文件的默认权限,知道有这回事即可,一般不用动。</p>
+  </div>
+
+  <h3>看进程:ps / pgrep / top</h3>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">ps</span> <span class="fl">aux</span>                       <span class="cmt"># aux=所有用户(a)+显示用户名(u)+无终端的后台进程(x);列 USER PID %CPU %MEM ... COMMAND</span>
+<span class="pr">$</span> <span class="cm">ps</span> aux <span class="op">|</span> <span class="cm">grep</span> nginx           <span class="cmt"># 找 nginx 相关进程(拿到 PID)</span>
+<span class="pr">$</span> <span class="cm">pgrep</span> <span class="fl">-a</span> nginx              <span class="cmt"># 更直接:直接列出 nginx 的 PID 和命令行</span>
+<span class="pr">$</span> <span class="cm">top</span>                          <span class="cmt"># 实时看 CPU/内存占用(htop 更好看,按 q 退出)</span></pre></div>
+  <div class="box note"><span class="bt">📖 PID 是什么</span>
+    <p>每个运行中的进程有个唯一编号 <strong>PID</strong>。要操作一个进程(暂停、杀掉),几乎都先得知道它的 PID——
+       用 <code>ps|grep</code> 或 <code>pgrep</code> 拿到。</p>
+  </div>
+
+  <h3>信号与杀进程:kill / pkill / killall</h3>
+  <p>"杀进程"本质是<strong>给它发一个信号</strong>。不同信号含义不同,选对了才优雅。</p>
+  <div class="tbl"><table>
+    <thead><tr><th>信号</th><th>编号</th><th>含义</th></tr></thead>
+    <tbody>
+      <tr><td><code>SIGTERM</code></td><td>15</td><td><strong>默认信号</strong>:礼貌地请它退出,程序可以先保存、清理再走</td></tr>
+      <tr><td><code>SIGINT</code></td><td>2</td><td>等于你按 <kbd>Ctrl</kbd>+<kbd>C</kbd>,中断</td></tr>
+      <tr><td><code>SIGKILL</code></td><td>9</td><td><strong>强杀</strong>:系统直接终结,程序<strong>来不及清理</strong>。最后手段</td></tr>
+      <tr><td><code>SIGHUP</code></td><td>1</td><td>"挂断";很多服务收到它会<strong>重载配置</strong>而不退出</td></tr>
+    </tbody>
+  </table></div>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">kill</span> 12345              <span class="cmt"># 默认发 SIGTERM(15),优雅退出 —— 永远先试这个</span>
+<span class="pr">$</span> <span class="cm">kill</span> <span class="fl">-9</span> 12345           <span class="cmt"># 发 SIGKILL,强杀。仅当上面那条没反应时才用</span>
+<span class="pr">$</span> <span class="cm">kill</span> <span class="fl">-HUP</span> 12345         <span class="cmt"># 让服务重载配置(等价 kill -1)</span>
+<span class="pr">$</span> <span class="cm">pkill</span> nginx             <span class="cmt"># 按名字杀(不用先查 PID),杀所有匹配的</span>
+<span class="pr">$</span> <span class="cm">pkill</span> <span class="fl">-f</span> <span class="st">"python app.py"</span>  <span class="cmt"># -f 匹配完整命令行,更精准</span>
+<span class="pr">$</span> <span class="cm">killall</span> nginx           <span class="cmt"># 按"进程名精确"杀(和 pkill 类似)</span></pre></div>
+  <div class="box warn"><span class="bt">⚠️ 不要张口就 <code>kill -9</code></span>
+    <p><code>-9</code> 不给程序任何收尾机会,可能导致<strong>数据没存盘、临时文件没清、锁没释放</strong>。
+       正确顺序:① <code>kill PID</code>(SIGTERM)→ ② 等几秒看是否退出 → ③ 还赖着不走,再 <code>kill -9</code>。
+       另外 <code>pkill -f python</code> 这种太宽的匹配会误杀,先用 <code>pgrep -af python</code> 确认范围。</p>
+  </div>
+
+  <h3>作业控制:前台 / 后台 / 不挂断</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>操作</th><th>作用</th></tr></thead>
+    <tbody>
+      <tr><td><code>cmd &amp;</code></td><td>直接放后台运行</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>把前台命令<strong>暂停</strong>并丢到后台</td></tr>
+      <tr><td><code>bg</code> / <code>fg</code></td><td>让暂停的任务在后台继续 / 调回前台</td></tr>
+      <tr><td><code>jobs</code></td><td>看当前 shell 的后台任务</td></tr>
+      <tr><td><code>nohup cmd &amp;</code></td><td>退出登录后仍继续运行(忽略挂断信号)</td></tr>
+      <tr><td><code>disown</code></td><td>把已在后台的任务从 shell"脱钩",关终端也不死</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>完整流程:放后台 → 查看 → 切回来</h4>
+  <p>不用再开好几个窗口。下面这套在<strong>同一个终端</strong>里就能管多个任务,关键是<strong>每个后台任务有个编号 <code>%1</code> <code>%2</code></strong>,靠它精确切换。</p>
+  <div class="codeblock"><pre><span class="cmt"># ① 启动时就放后台:命令末尾加 &</span>
+<span class="pr">$</span> ./train.sh <span class="op">&amp;</span>
+<span class="out">[1] 34521</span>                  <span class="cmt"># [1]=任务编号(job 1),34521=进程 PID</span>
+
+<span class="cmt"># ② 已经在前台跑着、想丢后台:先按 Ctrl-Z 暂停,再 bg 让它在后台继续</span>
+<span class="pr">$</span> ./build.sh
+^Z                          <span class="cmt"># 你按了 Ctrl-Z,它被"暂停"了</span>
+<span class="out">[2]+ Stopped   ./build.sh</span>
+<span class="pr">$</span> <span class="cm">bg</span>                         <span class="cmt"># 让刚暂停的任务在后台继续跑(bg=background)</span>
+
+<span class="cmt"># ③ 看现在有哪些后台任务、各自编号</span>
+<span class="pr">$</span> <span class="cm">jobs</span>
+<span class="out">[1]-  Running   ./train.sh &amp;</span>
+<span class="out">[2]+  Running   ./build.sh &amp;</span>
+
+<span class="cmt"># ④ 切回来:fg + 编号(这就是你问的"怎么切回来")</span>
+<span class="pr">$</span> <span class="cm">fg</span> %1                      <span class="cmt"># 把 1 号任务调回前台(fg=foreground)。光 fg 不带编号=最近那个</span></pre></div>
+  <div class="box note"><span class="bt">📖 <code>%1</code> 这个编号怎么用</span>
+    <p><code>jobs</code> 里方括号的数字就是任务编号。凡是要指定某个任务,都用 <code>%编号</code>:
+       <code>fg %2</code> 切回 2 号、<code>kill %1</code> 杀掉 1 号、<code>bg %2</code> 让 2 号后台继续。
+       带 <code>+</code> 的是"最近一个"(<code>fg</code> 不写编号就是它),<code>-</code> 是上一个。</p>
+  </div>
+  <div class="box warn"><span class="bt">⚠️ 这套 job 编号只在"当前这个 shell"里有效</span>
+    <p><code>jobs</code>/<code>fg</code>/<code>%1</code> 管的是<strong>当前终端会话</strong>里的任务。一旦你<strong>关掉这个终端/断开 SSH</strong>,
+       普通后台任务(只加了 <code>&amp;</code> 的)通常会跟着结束。想"关了还活着",要么 <code>nohup ./x &amp;</code> + <code>disown</code>,
+       要么——更推荐——用下面说的 tmux。另外 <code>&amp;</code> 放后台的任务<strong>仍会往屏幕打输出</strong>,
+       会和你后续操作混在一起,建议顺手重定向:<code>./train.sh &gt; train.log 2&gt;&amp;1 &amp;</code>。</p>
+  </div>
+
+  <div class="box tip"><span class="bt">💡 长任务别用 nohup,用 tmux</span>
+    <p><code>nohup ... &amp;</code> 能让任务在断线后存活,但看不到输出、不好管理。而你说的<strong>"老开好几个窗口很麻烦"</strong>——
+       这正是 <a href="#c9">第 9 章 tmux</a> 的主场:一个 SSH 连接里就能<strong>分屏 + 多窗口</strong>,各跑各的任务、随时切换,
+       断线重连还能<strong>回到原来的画面</strong>。<code>&amp;</code>/<code>fg</code> 适合临时挪一下,<strong>长期多任务请直接用 tmux</strong>。</p>
+  </div>
+
+  <h3>磁盘与链接</h3>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">df</span> <span class="fl">-h</span>                  <span class="cmt"># 各分区总量/已用/剩余(-h 人类可读)。磁盘满了先看这个</span>
+<span class="pr">$</span> <span class="cm">du</span> <span class="fl">-sh</span> *               <span class="cmt"># 当前目录下每一项各占多大(-s 汇总 -h 可读)</span>
+<span class="pr">$</span> <span class="cm">ln</span> <span class="fl">-s</span> /opt/app/bin/tool ~/tool   <span class="cmt"># 软链接(快捷方式),最常用</span></pre></div>
+  <div class="box note"><span class="bt">📖 软链接 vs 硬链接(一句话)</span>
+    <p><strong>软链接</strong>(<code>ln -s</code>)像快捷方式,存的是"目标路径",目标删了就失效,可跨分区、可链目录。
+       <strong>硬链接</strong>(<code>ln</code> 不加 <code>-s</code>)是同一份数据的另一个名字,日常用软链接就够了。</p>
+  </div>
+</div></section>
+
+<!-- ============ 8 ============ -->
+<section class="chapter" id="c8"><div class="wrap">
+  <h2><span class="h2num">08</span>远程传输与打包 <span style="color:var(--green);font-size:16px">★</span></h2>
+  <p class="lead">本机 ↔ 服务器、服务器 ↔ 服务器之间怎么传文件,从网上怎么下载——这章全讲清。</p>
+
+  <h3>scp:基于 SSH 的复制(简单直接)</h3>
+  <p>记法:<code>scp 来源 目的地</code>。远程位置写成 <code>用户@主机:路径</code>。<strong>在你本机执行</strong>。</p>
+  <div class="codeblock"><pre><span class="cmt"># ① 本机 → 服务器(上传)</span>
+<span class="pr">$</span> <span class="cm">scp</span> ./report.pdf  user@1.2.3.4:<span class="va">/home/user/</span>
+
+<span class="cmt"># ② 服务器 → 本机(下载),注意来源和目的地调换</span>
+<span class="pr">$</span> <span class="cm">scp</span> user@1.2.3.4:<span class="va">/var/log/app.log</span>  ./
+
+<span class="cmt"># ③ 整个目录:加 -r</span>
+<span class="pr">$</span> <span class="cm">scp</span> <span class="fl">-r</span> ./dist  user@1.2.3.4:<span class="va">/var/www/</span>
+
+<span class="cmt"># ④ 服务器 A → 服务器 B(本机当中转发起)</span>
+<span class="pr">$</span> <span class="cm">scp</span> userA@hostA:<span class="va">/data/x.tar</span>  userB@hostB:<span class="va">/backup/</span></pre></div>
+  <div class="box warn"><span class="bt">⚠️ 端口是大写 <code>-P</code>!</span>
+    <p>如果服务器 SSH 不是默认 22 端口,scp 指定端口用<strong>大写 <code>-P 2222</code></strong>,
+       而 ssh 命令里却是<strong>小写 <code>-p 2222</code></strong>——这俩大小写相反,是经典踩坑点。
+       记法:scp 大写 P、ssh 小写 p。</p>
+  </div>
+
+  <h3>rsync:增量同步(传大目录/反复同步首选)</h3>
+  <p>rsync 只传"有变化的部分",中断后能续传,远胜 scp 重传整个目录。同步代码、备份数据常用。</p>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">rsync</span> <span class="fl">-avz</span> ./project/  user@host:<span class="va">/srv/project/</span>
+<span class="cmt">#         │││                  -a 保留权限/时间等  -v 显示过程  -z 压缩传输</span>
+<span class="pr">$</span> <span class="cm">rsync</span> <span class="fl">-avz</span> <span class="fl">--progress</span> big.iso  user@host:<span class="va">/data/</span>   <span class="cmt"># 显示进度条</span>
+<span class="pr">$</span> <span class="cm">rsync</span> <span class="fl">-avz</span> <span class="fl">--delete</span> ./site/  user@host:<span class="va">/var/www/</span>    <span class="cmt"># 让目标和源完全一致</span>
+<span class="pr">$</span> <span class="cm">rsync</span> <span class="fl">-avz</span> <span class="fl">-e</span> <span class="st">"ssh -p 2222"</span> ./x  user@host:<span class="va">~/</span>   <span class="cmt"># 非默认端口这样写</span></pre></div>
+  <div class="box warn"><span class="bt">⚠️ 源路径末尾的 <code>/</code> 有讲究</span>
+    <p><code>rsync -a src/ dst/</code> → 把 src <strong>里面的内容</strong>放进 dst。<br>
+       <code>rsync -a src dst/</code>(无斜杠)→ 把 src <strong>这个目录本身</strong>放进 dst(变成 dst/src)。<br>
+       而 <code>--delete</code> 会<strong>删掉目标里源没有的文件</strong>,用前务必先加 <code>--dry-run</code> 预演一遍。</p>
+  </div>
+
+  <h3>curl 与 wget:从网络下载</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>需求</th><th>命令</th></tr></thead>
+    <tbody>
+      <tr><td>下载并按原名保存</td><td><code>curl -O http://x/a.zip</code> 或 <code>wget http://x/a.zip</code></td></tr>
+      <tr><td>下载另存为别的名字</td><td><code>curl -o new.zip http://...</code></td></tr>
+      <tr><td>跟随跳转(301/302)</td><td><code>curl -L http://...</code>(<code>-L</code> 很常用)</td></tr>
+      <tr><td>断点续传</td><td><code>wget -c http://...</code>(大文件断网后接着下)</td></tr>
+      <tr><td>调 API:带 header / POST</td><td><code>curl -H "Authorization: Bearer xxx" -d '{...}' url</code></td></tr>
+      <tr><td>只看响应头</td><td><code>curl -I http://...</code></td></tr>
+      <tr><td>静默 + 显示错误</td><td><code>curl -sS http://...</code>(脚本里常用)</td></tr>
+    </tbody>
+  </table></div>
+  <div class="box note"><span class="bt">📖 curl 还是 wget?</span>
+    <p><strong>下载文件、镜像整站</strong> → wget(自带断点续传 <code>-c</code>、递归 <code>-r</code> 更顺手)。
+       <strong>调接口、调试 HTTP、当管道一环</strong> → curl(默认把内容打到 stdout,方便接 <code>| jq</code> 处理 JSON,见第 12 章)。</p>
+  </div>
+
+  <h3>打包压缩:tar / gzip / zip</h3>
+  <p>tar 的参数像咒语,但记住两条就够 90% 场景。口诀:<strong>"创建看 c,解开看 x"</strong>。</p>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">tar</span> <span class="fl">-czf</span> backup.tar.gz  ./project   <span class="cmt"># 打包+压缩:c 创建 z gzip f 文件名</span>
+<span class="pr">$</span> <span class="cm">tar</span> <span class="fl">-xzf</span> backup.tar.gz             <span class="cmt"># 解开:把 c 换成 x(extract)</span>
+<span class="pr">$</span> <span class="cm">tar</span> <span class="fl">-tzf</span> backup.tar.gz             <span class="cmt"># 只看里面有啥不解开:t(list)</span>
+<span class="pr">$</span> <span class="cm">tar</span> <span class="fl">-xzf</span> x.tar.gz <span class="fl">-C</span> /opt/         <span class="cmt"># 解到指定目录:-C</span></pre></div>
+  <div class="tbl"><table>
+    <thead><tr><th>字母</th><th>含义</th></tr></thead>
+    <tbody>
+      <tr><td><code>c</code> / <code>x</code> / <code>t</code></td><td>创建 create / 解开 extract / 列表 list(三选一)</td></tr>
+      <tr><td><code>z</code></td><td>用 gzip(对应 <code>.tar.gz</code>;<code>.tar.bz2</code> 用 <code>j</code>,<code>.tar.xz</code> 用 <code>J</code>)</td></tr>
+      <tr><td><code>f</code></td><td>后面紧跟文件名(<strong>必须有,且通常放最后</strong>)</td></tr>
+      <tr><td><code>v</code></td><td>显示处理过程(verbose,可选)</td></tr>
+    </tbody>
+  </table></div>
+  <p>跨平台传给 Windows 用户,用 <code>zip -r out.zip dir/</code> 打包、<code>unzip out.zip</code> 解开更通用。
+     单个文件压缩用 <code>gzip file</code>(变 <code>file.gz</code>)、<code>gunzip file.gz</code> 还原。</p>
+</div></section>
+
+<!-- ============ 9 ============ -->
+<section class="chapter" id="c9"><div class="wrap">
+  <h2><span class="h2num">09</span>会话保持与 Shell 效率</h2>
+  <p class="lead">每天在服务器干活,这两样东西能极大省时间:tmux 让你断线不丢进程,history/补全让你少打字。</p>
+
+  <h3>tmux:断线不丢、可分屏的"会话"</h3>
+  <p>痛点:SSH 一断,跑着的程序就没了。tmux 把会话<strong>留在服务器端</strong>,你重连后能<strong>原样接回</strong>。</p>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">tmux</span> new <span class="fl">-s</span> work     <span class="cmt"># -s 给会话起个名(session),这里叫 work;在里面随便跑你的长任务</span>
+<span class="cmt"># —— 此时网断了 / 你手动按 Ctrl-b 然后 d 脱离(detach)——</span>
+<span class="pr">$</span> <span class="cm">tmux</span> ls               <span class="cmt"># 重新登录后,看有哪些会话还活着</span>
+<span class="pr">$</span> <span class="cm">tmux</span> attach <span class="fl">-t</span> work  <span class="cmt"># -t 指定要接回哪个会话(target),画面和任务都还在!</span></pre></div>
+  <h4>三层心智模型:会话 &gt; 窗口 &gt; 面板</h4>
+  <p>tmux 的层次想清楚,后面的快捷键就不乱了。用浏览器类比很贴切:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>tmux 概念</th><th>类比</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><strong>会话 session</strong></td><td>整个浏览器</td><td>一个项目开一个,断线后留在服务器、能整体接回</td></tr>
+      <tr><td><strong>窗口 window</strong></td><td>标签页 tab</td><td>一个会话里多个窗口,底部状态栏一字排开,数字切换</td></tr>
+      <tr><td><strong>面板 pane</strong></td><td>同屏分屏</td><td>把一个窗口切成几块,同时看到(比如左边跑服务、右边看日志)</td></tr>
+    </tbody>
+  </table></div>
+  <div class="box note"><span class="bt">📖 这就是你"少开几个窗口"的答案</span>
+    <p>以前开 3 个 SSH 窗口 = 现在一个会话里 3 个 window(或几个 pane)。<strong>只连一次 SSH</strong>,
+       全在里面切,断线全保住。底部状态栏会显示当前在第几个窗口、叫什么名。</p>
+  </div>
+
+  <h4>快捷键:先按前缀,松手再按下一个</h4>
+  <p>tmux 所有快捷键都<strong>先按前缀键</strong> <kbd>Ctrl</kbd>+<kbd>b</kbd>,<strong>松开</strong>,再按功能键。下面 <kbd>C-b</kbd> 代表这个前缀。</p>
+  <div class="tbl"><table>
+    <thead><tr><th>类别</th><th>按键</th><th>作用</th></tr></thead>
+    <tbody>
+      <tr><td rowspan="2">会话</td><td><kbd>C-b</kbd> <kbd>d</kbd></td><td>脱离(detach),任务继续后台跑;之后 <code>tmux a</code> 接回</td></tr>
+      <tr><td><kbd>C-b</kbd> <kbd>s</kbd></td><td>列出所有会话,选一个跳过去</td></tr>
+      <tr><td rowspan="4">窗口<br>(标签页)</td><td><kbd>C-b</kbd> <kbd>c</kbd></td><td>新建窗口(create)</td></tr>
+      <tr><td><kbd>C-b</kbd> <kbd>0..9</kbd></td><td>切到第 n 个窗口</td></tr>
+      <tr><td><kbd>C-b</kbd> <kbd>n</kbd> / <kbd>p</kbd></td><td>下一个 / 上一个窗口(next/prev)</td></tr>
+      <tr><td><kbd>C-b</kbd> <kbd>,</kbd></td><td>给当前窗口改名(方便认)</td></tr>
+      <tr><td rowspan="4">面板<br>(分屏)</td><td><kbd>C-b</kbd> <kbd>%</kbd></td><td>左右分屏</td></tr>
+      <tr><td><kbd>C-b</kbd> <kbd>"</kbd></td><td>上下分屏</td></tr>
+      <tr><td><kbd>C-b</kbd> <kbd>←↑↓→</kbd></td><td>在面板间切换光标</td></tr>
+      <tr><td><kbd>C-b</kbd> <kbd>z</kbd></td><td>把当前面板临时<strong>放大占满</strong>(再按一次还原),看输出超方便</td></tr>
+      <tr><td>其他</td><td><kbd>C-b</kbd> <kbd>[</kbd></td><td>进入滚动模式翻历史输出(<kbd>q</kbd> 退出);<kbd>C-b</kbd> <kbd>x</kbd> 关闭当前面板</td></tr>
+    </tbody>
+  </table></div>
+  <div class="box warn"><span class="bt">⚠️ 关掉 vs 脱离,别搞混</span>
+    <p>在 tmux 里直接 <code>exit</code> / <kbd>Ctrl</kbd>+<kbd>D</kbd> 是<strong>真的关掉</strong>那个面板/窗口(任务也没了)。
+       想"保留它继续跑、自己先离开",要用 <strong>脱离 <kbd>C-b</kbd> <kbd>d</kbd></strong>。这俩是新手最容易弄反的地方。</p>
+  </div>
+
+  <h4>一个典型工作流(照着走一遍就会了)</h4>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">tmux</span> new <span class="fl">-s</span> proj        <span class="cmt"># 1. 开一个叫 proj 的会话</span>
+<span class="cmt"># 2. 此刻在窗口 0,跑后端:  ./server.sh</span>
+<span class="cmt"># 3. 按 C-b c 开窗口 1,跑前端:  npm run dev</span>
+<span class="cmt"># 4. 按 C-b " 上下分屏,下半 tail -f log;C-b 上下方向键切面板</span>
+<span class="cmt"># 5. 按 C-b 0 / C-b 1 在前后端窗口间来回切</span>
+<span class="cmt"># 6. 下班 / 网断:按 C-b d 脱离(一切照常在服务器跑)</span>
+<span class="pr">$</span> <span class="cm">tmux</span> ls                  <span class="cmt"># 第二天重新 SSH 上来,看会话还在</span>
+<span class="out">proj: 2 windows (attached) ...</span>
+<span class="pr">$</span> <span class="cm">tmux</span> a <span class="fl">-t</span> proj           <span class="cmt"># 7. 接回去,窗口/面板/任务原样还在(a = attach 简写)</span></pre></div>
+  <div class="box tip"><span class="bt">💡 两条让 tmux 顺手十倍的配置</span>
+    <p>写进 <code>~/.tmux.conf</code>(没有就新建),开启<strong>鼠标</strong>(可点击切面板、拖边框调大小、滚轮翻历史)
+       和更好记的分屏键:</p>
+    <div class="codeblock"><pre><span class="cmt"># ~/.tmux.conf</span>
+<span class="cm">set</span> <span class="fl">-g</span> mouse on              <span class="cmt"># 鼠标点选面板/窗口、滚轮翻屏</span>
+<span class="cm">setw</span> <span class="fl">-g</span> mode-keys vi         <span class="cmt"># 滚动模式用 vim 键位(配合第 16 章)</span></pre></div>
+    <p>改完在 tmux 里执行 <code>tmux source ~/.tmux.conf</code> 生效。嫌 <kbd>Ctrl</kbd>+<kbd>b</kbd> 难按的人常把前缀改成
+       <kbd>Ctrl</kbd>+<kbd>a</kbd>:<code>set -g prefix C-a</code>。</p>
+  </div>
+  <div class="box note"><span class="bt">📖 screen 是 tmux 的老前辈</span>
+    <p>有些老服务器只有 <code>screen</code>:<code>screen -S work</code> 新建、<kbd>Ctrl</kbd>+<kbd>a</kbd> <kbd>d</kbd> 脱离、
+       <code>screen -r work</code> 接回。理念一样,优先用 tmux。</p>
+  </div>
+
+  <h3>history 与命令行效率</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>操作</th><th>作用</th></tr></thead>
+    <tbody>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>R</kbd></td><td><strong>反向搜历史命令</strong>:打几个字就能翻出以前敲过的长命令,回车执行。最该练的一个</td></tr>
+      <tr><td><code>history</code></td><td>列出历史;<code>history | grep ssh</code> 找以前的命令</td></tr>
+      <tr><td><code>!!</code></td><td>上一条命令。<code>sudo !!</code> = 用 sudo 重跑刚才那条(忘加 sudo 时神器)</td></tr>
+      <tr><td><code>!$</code></td><td>上一条命令的<strong>最后一个参数</strong>。<code>mkdir /a/b/c</code> 后 <code>cd !$</code></td></tr>
+      <tr><td><code>!ssh</code></td><td>最近一条以 ssh 开头的命令</td></tr>
+      <tr><td><kbd>Tab</kbd></td><td>自动补全命令/路径;补不全按两下看候选</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>A</kbd> / <kbd>E</kbd></td><td>光标跳到行首 / 行尾</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>U</kbd> / <kbd>K</kbd></td><td>删到行首 / 删到行尾</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd></td><td>往左删一个词</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>L</kbd></td><td>清屏(等于 clear)</td></tr>
+    </tbody>
+  </table></div>
+  <div class="box tip"><span class="bt">💡 这些行编辑快捷键到处都能用</span>
+    <p><kbd>Ctrl</kbd>+<kbd>A/E/U/K/W</kbd> 这套是 Emacs 风格,在 bash、Python REPL、很多输入框里都通用。
+       肌肉记忆一旦养成,打字效率翻倍。</p>
+  </div>
+</div></section>
+
+<!-- ============ 10 ============ -->
+<section class="chapter" id="c10"><div class="wrap">
+  <h2><span class="h2num">10</span>SSH 进阶</h2>
+  <p class="lead">天天 ssh 登录,配好这几样能少打很多字、少输很多密码,还能打通内网服务。</p>
+
+  <h3>~/.ssh/config:给主机起别名</h3>
+  <p>不想每次都打一长串 <code>ssh -p 2222 user@1.2.3.4</code>?在<strong>本机</strong> <code>~/.ssh/config</code> 里写一次:</p>
+  <div class="codeblock"><pre><span class="cmt"># ~/.ssh/config</span>
+Host <span class="va">prod</span>
+    HostName 1.2.3.4
+    User ubuntu
+    Port 2222
+    IdentityFile ~/.ssh/id_rsa</pre></div>
+  <p>之后直接 <code>ssh prod</code> 就登录了,<code>scp file prod:~/</code> 也认这个别名。</p>
+
+  <h3>ssh-copy-id:免密登录</h3>
+  <p>原理一句话:把<strong>公钥</strong>放到服务器,服务器用它验证你手里的<strong>私钥</strong>,匹配就放行,不再问密码。</p>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">ssh-keygen</span> <span class="fl">-t</span> ed25519        <span class="cmt"># -t 指定密钥类型(type),ed25519 是现在推荐的算法;一路回车即可</span>
+<span class="pr">$</span> <span class="cm">ssh-copy-id</span> prod              <span class="cmt"># 把公钥装到服务器(这一次要输密码)</span>
+<span class="pr">$</span> <span class="cm">ssh</span> prod                      <span class="cmt"># 以后再登录,免密!</span></pre></div>
+  <div class="box warn"><span class="bt">⚠️ 私钥不外传、权限收紧</span>
+    <p><code>id_rsa</code>(无 <code>.pub</code>)是<strong>私钥</strong>,绝不能发给别人或上传。<code>id_rsa.pub</code> 才是公钥,可以公开。
+       私钥权限须 <code>chmod 600</code>。</p>
+  </div>
+
+  <h3>端口转发(隧道):访问"够不着"的服务</h3>
+  <p>场景:服务器上跑着只监听 <code>localhost:8080</code> 的服务(数据库、面板、Jupyter),你本机直接访问不到。
+     用本地转发,把它"映射"到你本机端口:</p>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">ssh</span> <span class="fl">-L</span> 9000:localhost:8080  prod
+<span class="cmt"># 之后浏览器开 http://localhost:9000,流量经 SSH 隧道直达服务器的 8080</span></pre></div>
+  <div class="tbl"><table>
+    <thead><tr><th>选项</th><th>方向</th><th>用途</th></tr></thead>
+    <tbody>
+      <tr><td><code>-L 本地:目标:端口</code></td><td>本地 → 远程</td><td>本机访问服务器(或它能到的)内网服务</td></tr>
+      <tr><td><code>-R 远程:目标:端口</code></td><td>远程 → 本地</td><td>把本机服务暴露给服务器那边</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>跳板机:经堡垒机连内网</h3>
+  <p>很多公司要先登堡垒机(jump host)才能到内网机器。<code>ProxyJump</code> 一步到位:</p>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">ssh</span> <span class="fl">-J</span> user@jump  user@10.0.0.5     <span class="cmt"># 经 jump 跳到内网 10.0.0.5</span>
+<span class="cmt"># 也可写进 ~/.ssh/config:</span>
+Host inner
+    HostName 10.0.0.5
+    ProxyJump user@jump</pre></div>
+</div></section>
+
+<!-- ============ 11 ============ -->
+<section class="chapter" id="c11"><div class="wrap">
+  <h2><span class="h2num">11</span>服务 · 日志 · 定时任务</h2>
+  <p class="lead">运维日常:启停服务、看服务日志、设定时任务。现代 Linux 用 systemd 这一套。</p>
+
+  <h3>systemctl:管理服务</h3>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">systemctl</span> status nginx       <span class="cmt"># 看状态:在跑吗?最近几行日志</span>
+<span class="pr">$</span> <span class="cm">sudo</span> <span class="cm">systemctl</span> restart nginx <span class="cmt"># 重启(改完配置后)</span>
+<span class="pr">$</span> <span class="cm">sudo</span> <span class="cm">systemctl</span> stop nginx    <span class="cmt"># 停止 / start 启动 / reload 重载配置</span>
+<span class="pr">$</span> <span class="cm">sudo</span> <span class="cm">systemctl</span> enable nginx  <span class="cmt"># 设为开机自启(disable 取消)</span>
+<span class="pr">$</span> <span class="cm">systemctl</span> is-active nginx    <span class="cmt"># 脚本里判断是否在运行</span></pre></div>
+  <div class="box note"><span class="bt">📖 enable ≠ start</span>
+    <p><code>start</code> 是<strong>现在</strong>启动一次;<code>enable</code> 是设置<strong>开机时</strong>自动启动。两者独立——
+       想"现在就启动且以后开机也启动",用 <code>systemctl enable --now nginx</code>。</p>
+  </div>
+
+  <h3>journalctl:看服务日志</h3>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">journalctl</span> <span class="fl">-u</span> nginx           <span class="cmt"># 只看 nginx 这个服务的日志</span>
+<span class="pr">$</span> <span class="cm">journalctl</span> <span class="fl">-u</span> nginx <span class="fl">-f</span>        <span class="cmt"># -f 实时跟踪(和 tail -f 一样,排障时开着)</span>
+<span class="pr">$</span> <span class="cm">journalctl</span> <span class="fl">-u</span> nginx <span class="fl">--since</span> <span class="st">"10 min ago"</span>   <span class="cmt"># 只看最近 10 分钟</span>
+<span class="pr">$</span> <span class="cm">journalctl</span> <span class="fl">-u</span> nginx <span class="fl">-p</span> err <span class="fl">-b</span>     <span class="cmt"># 本次开机后(-b)的错误级别(-p err)日志</span></pre></div>
+  <p>传统的日志文件仍在 <code>/var/log/</code> 下(如 <code>/var/log/syslog</code>),配合 <code>tail -f</code> 和 grep 看。</p>
+
+  <h3>crontab:定时任务</h3>
+  <p><code>crontab -e</code> 编辑当前用户的定时任务,<code>crontab -l</code> 列出。每行 5 个时间字段 + 命令:</p>
+  <div class="codeblock"><pre><span class="cmt"># ┌── 分(0-59)</span>
+<span class="cmt"># │ ┌── 时(0-23)</span>
+<span class="cmt"># │ │ ┌── 日(1-31)</span>
+<span class="cmt"># │ │ │ ┌── 月(1-12)</span>
+<span class="cmt"># │ │ │ │ ┌── 周几(0-7,0和7都是周日)</span>
+<span class="cmt"># * * * * *  要执行的命令</span>
+  <span class="va">30 3 * * *</span>   /home/user/backup.sh        <span class="cmt"># 每天 03:30</span>
+  <span class="va">*/10 * * * *</span> curl -s http://localhost/ping <span class="cmt"># 每 10 分钟</span>
+  <span class="va">0 9 * * 1</span>   /home/user/weekly.sh        <span class="cmt"># 每周一 09:00</span></pre></div>
+  <div class="box warn"><span class="bt">⚠️ cron 里环境和你登录时不一样</span>
+    <p>cron 的 <code>PATH</code> 很精简,<strong>务必用绝对路径</strong>写命令和脚本,别依赖 <code>~</code> 或自定义变量。
+       排查时把输出重定向到文件:<code>... &gt;&gt; /tmp/cron.log 2&gt;&amp;1</code>,这样才看得到为什么没跑成功。</p>
+  </div>
+</div></section>
+
+<!-- ============ 12 ============ -->
+<section class="chapter" id="c12"><div class="wrap">
+  <h2><span class="h2num">12</span>排查类工具(出问题时救命)</h2>
+  <p class="lead">"端口被谁占了""磁盘怎么满了""这段 JSON 怎么读"——这些工具关键时刻顶用。</p>
+
+  <h3>谁占了端口 / 谁在听:ss、lsof</h3>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">ss</span> <span class="fl">-tlnp</span>                  <span class="cmt"># 列出所有在监听的 TCP 端口及对应进程</span>
+<span class="cmt">#    │││└ p=显示进程  n=不解析成域名(更快)  l=只看 listen  t=TCP</span>
+<span class="pr">$</span> <span class="cm">ss</span> <span class="fl">-tlnp</span> <span class="op">|</span> <span class="cm">grep</span> <span class="st">:8080</span>     <span class="cmt"># 8080 被谁占着</span>
+<span class="pr">$</span> <span class="cm">lsof</span> <span class="fl">-i</span> :8080             <span class="cmt"># 同样查 8080,lsof 更直观(可能需 sudo)</span>
+<span class="pr">$</span> <span class="cm">lsof</span> <span class="va">/var/log/app.log</span>     <span class="cmt"># 哪个进程正打开着这个文件(删不掉文件时查它)</span></pre></div>
+  <div class="box tip"><span class="bt">💡 "Address already in use" 怎么办</span>
+    <p>启动服务报端口被占,流程:<code>ss -tlnp | grep :端口</code> 找到 PID → 确认那进程是不是该杀 →
+       <code>kill PID</code>(别急着 -9)。<code>netstat</code> 是更老的同类工具,新系统用 <code>ss</code>。</p>
+  </div>
+
+  <h3>jq:处理 JSON(配合 curl)</h3>
+  <p>API 返回一坨压扁的 JSON,<code>jq</code> 帮你格式化、提取字段。</p>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">curl</span> <span class="fl">-s</span> https://api.github.com/repos/torvalds/linux <span class="op">|</span> <span class="cm">jq</span> <span class="st">.</span>
+<span class="cmt"># . = 原样美化输出(缩进+高亮)</span>
+<span class="pr">$</span> <span class="cm">curl</span> <span class="fl">-s</span> .../repo <span class="op">|</span> <span class="cm">jq</span> <span class="st">.stargazers_count</span>   <span class="cmt"># 取某个字段</span>
+<span class="pr">$</span> <span class="cm">cat</span> data.json <span class="op">|</span> <span class="cm">jq</span> <span class="st">'.items[] | .name'</span>     <span class="cmt"># 遍历数组取每项的 name</span>
+<span class="pr">$</span> <span class="cm">cat</span> data.json <span class="op">|</span> <span class="cm">jq</span> <span class="st">'.items | length'</span>      <span class="cmt"># 数组长度</span></pre></div>
+
+  <h3>watch:周期性重复一条命令</h3>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">watch</span> <span class="fl">-n</span> 2 <span class="st">'df -h'</span>          <span class="cmt"># 每 2 秒刷新一次磁盘用量</span>
+<span class="pr">$</span> <span class="cm">watch</span> <span class="fl">-d</span> <span class="st">'ss -tlnp | grep :80'</span>  <span class="cmt"># -d 高亮每次的变化部分</span></pre></div>
+
+  <h3>磁盘满了:定位大文件/大目录</h3>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">df</span> <span class="fl">-h</span>                       <span class="cmt"># ① 先看哪个分区满了</span>
+<span class="pr">$</span> <span class="cm">du</span> <span class="fl">-sh</span> /var/* <span class="op">|</span> <span class="cm">sort</span> <span class="fl">-rh</span> <span class="op">|</span> <span class="cm">head</span>   <span class="cmt"># ② 逐层往下找谁最大(详见第 14 章配方)</span>
+<span class="pr">$</span> <span class="cm">ncdu</span> /var                    <span class="cmt"># ③ 有 ncdu 的话,交互式浏览最省事</span></pre></div>
+  <div class="box note"><span class="bt">📖 <code>du</code> 和 <code>df</code> 对不上?</span>
+    <p>有时 <code>df</code> 显示满了,但 <code>du</code> 加起来没那么多——常因为<strong>有进程还占着已删除的文件</strong>
+       (空间没真正释放)。用 <code>lsof | grep deleted</code> 找到那个进程,重启它即可回收。</p>
+  </div>
+</div></section>
+
+<!-- ============ 13 ============ -->
+<section class="chapter" id="c13"><div class="wrap">
+  <h2><span class="h2num">13</span>echo · 变量 · 环境 <span style="color:var(--green);font-size:16px">★</span></h2>
+  <p class="lead">你说见过 <code>echo "..." &gt;&gt; 某文件</code> 但没完全理解。其实它是<strong>三个零件拼起来</strong>的,拆开就清楚了。</p>
+
+  <h3>零件一:echo —— 把文字输出到 stdout</h3>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">echo</span> <span class="st">"hello"</span>           <span class="cmt"># 屏幕打印 hello(其实是写到了 stdout)</span>
+<span class="out">hello</span>
+<span class="pr">$</span> <span class="cm">echo</span> <span class="fl">-n</span> <span class="st">"no newline"</span>   <span class="cmt"># -n 结尾不换行</span>
+<span class="pr">$</span> <span class="cm">echo</span> <span class="fl">-e</span> <span class="st">"a\tb\nc"</span>      <span class="cmt"># -e 解释转义:\t 制表 \n 换行</span></pre></div>
+  <p>关键:echo 的输出默认去屏幕,但因为它走的是 <strong>stdout</strong>,所以能被第 3 章的 <code>&gt;</code>/<code>&gt;&gt;</code> 改道到文件。</p>
+
+  <h3>零件二:<code>$</code> —— 变量展开</h3>
+  <p>shell 看到 <code>$名字</code>,会在运行前把它<strong>替换成变量的值</strong>。系统预置了一批环境变量:</p>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">echo</span> <span class="va">$HOME</span>            <span class="out">/home/user</span>     <span class="cmt"># 你的家目录</span>
+<span class="pr">$</span> <span class="cm">echo</span> <span class="va">$USER</span>            <span class="out">user</span>          <span class="cmt"># 当前用户名</span>
+<span class="pr">$</span> <span class="cm">echo</span> <span class="va">$PWD</span>             <span class="out">/home/user/x</span>   <span class="cmt"># 当前目录</span>
+<span class="pr">$</span> <span class="cm">echo</span> <span class="st">"嗨 </span><span class="va">$USER</span><span class="st">,家在 </span><span class="va">${HOME}</span><span class="st">"</span>          <span class="cmt"># ${} 是更明确的写法</span>
+<span class="out">嗨 user,家在 /home/user</span></pre></div>
+  <div class="box warn"><span class="bt">⚠️ 单引号 vs 双引号 —— 最关键的区别</span>
+    <p><strong>双引号 <code>"</code>:变量会展开</strong>。<strong>单引号 <code>'</code>:原样输出,<code>$</code> 不展开</strong>。</p>
+    <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">echo</span> <span class="st">"我在 </span><span class="va">$HOME</span><span class="st">"</span>     <span class="out">我在 /home/user</span>   <span class="cmt"># 双引号:展开了</span>
+<span class="pr">$</span> <span class="cm">echo</span> <span class="st">'我在 $HOME'</span>      <span class="out">我在 $HOME</span>       <span class="cmt"># 单引号:原样,没展开</span></pre></div>
+    <p>记法:要里面的变量"活"→ 双引号;要"一字不改"(比如写正则、写带 <code>$</code> 的字面量)→ 单引号。</p>
+  </div>
+
+  <h3>自定义变量,以及 export 的意义</h3>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="va">NAME</span>=<span class="st">"world"</span>            <span class="cmt"># 定义变量。注意:等号两边绝不能有空格!</span>
+<span class="pr">$</span> <span class="cm">echo</span> <span class="st">"hi </span><span class="va">$NAME</span><span class="st">"</span>          <span class="out">hi world</span>
+<span class="pr">$</span> <span class="cm">export</span> <span class="va">NAME</span>=<span class="st">"world"</span>     <span class="cmt"># export = 让子进程/脚本也能看到这个变量</span></pre></div>
+  <div class="box warn"><span class="bt">⚠️ <code>NAME = "x"</code> 会报错</span>
+    <p>赋值<strong>等号两侧不能有空格</strong>:<code>NAME="x"</code> ✅,<code>NAME = "x"</code> ❌
+       (shell 会把它当成"运行命令 NAME,参数是 = 和 x")。这是初学最常踩的坑。</p>
+  </div>
+  <div class="box note"><span class="bt">📖 export 到底干嘛?(shell 变量 vs 环境变量)</span>
+    <p>不加 export 的变量只在<strong>当前 shell</strong> 有效;你运行的程序、脚本(子进程)<strong>看不到</strong>它。
+       <code>export</code> 把它"升级"成环境变量,子进程才会继承。所以配置程序行为(如 <code>export API_KEY=...</code>)要用 export。</p>
+  </div>
+
+  <h3>PATH:命令为什么"找得到"</h3>
+  <p>你敲 <code>git</code>,shell 怎么知道去哪找这个程序?它<strong>按顺序在 <code>$PATH</code> 列的目录里挨个找</strong>。</p>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">echo</span> <span class="va">$PATH</span>
+<span class="out">/usr/local/bin:/usr/bin:/bin:/home/user/.local/bin</span>   <span class="cmt"># 冒号分隔的目录列表</span>
+<span class="pr">$</span> <span class="cm">which</span> git              <span class="cmt"># 看 git 到底用的是哪个路径</span>
+<span class="out">/usr/bin/git</span></pre></div>
+  <p>"命令找不到 command not found"通常就是<strong>程序所在目录不在 PATH 里</strong>。把目录加进去:</p>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">export</span> <span class="va">PATH</span>=<span class="st">"</span><span class="va">$HOME</span><span class="st">/bin:</span><span class="va">$PATH</span><span class="st">"</span>   <span class="cmt"># 把 ~/bin 加到最前面(本次会话有效)</span></pre></div>
+
+  <h3>压轴:逐字拆解 <code>echo "..." &gt;&gt; ~/.bashrc</code></h3>
+  <p>现在把三个零件拼起来。这是<strong>往配置文件追加一行</strong>的标准写法:</p>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">echo</span> <span class="st">'export PATH="$HOME/bin:$PATH"'</span> <span class="op">&gt;&gt;</span> <span class="va">~/.bashrc</span></pre></div>
+  <div class="flow" style="flex-direction:column;align-items:flex-start;gap:6px">
+    <span class="node"><code>echo '...'</code> &nbsp;→ 产生一行文本(<strong>单引号</strong>:保留字面的 <code>$HOME</code>,不在此刻展开)</span>
+    <span class="arr">↓</span>
+    <span class="node"><code>&gt;&gt;</code> &nbsp;→ 把这行<strong>追加</strong>到文件末尾(用 <code>&gt;</code> 会清空整个 .bashrc,灾难!)</span>
+    <span class="arr">↓</span>
+    <span class="node hl"><code>~/.bashrc</code> &nbsp;→ 你的 shell 启动配置文件,以后每次开终端都会读它</span>
+  </div>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">source</span> <span class="va">~/.bashrc</span>      <span class="cmt"># 改完让它立刻生效(否则要重开终端)。也可写作 . ~/.bashrc</span></pre></div>
+  <div class="box warn"><span class="bt">⚠️ 为什么这里偏要用单引号?</span>
+    <p>我们想往文件里写的是<strong>字面字符串</strong> <code>$HOME/bin:$PATH</code>,让它<strong>以后每次启动时</strong>再展开。
+       若用双引号,<code>$HOME</code>/<code>$PATH</code> 会在<strong>写入的此刻</strong>就被替换成当时的值,写进去的就成了死值。所以这里用单引号。</p>
+  </div>
+
+  <h3>alias 与配置文件</h3>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">alias</span> ll=<span class="st">'ls -lah'</span>     <span class="cmt"># 给长命令起短别名;写进 ~/.bashrc 永久生效</span>
+<span class="pr">$</span> <span class="cm">alias</span> gs=<span class="st">'git status'</span></pre></div>
+  <div class="box note"><span class="bt">📖 .bashrc vs .bash_profile</span>
+    <p>粗略记:<strong>每开一个新终端</strong>都会读 <code>.bashrc</code>(别名、函数、PATH 放这);
+       <code>.bash_profile</code> 主要在<strong>登录时</strong>读一次。大多数发行版会让 .bash_profile 去 source .bashrc,
+       所以<strong>日常配置统一往 .bashrc 写</strong>就好。</p>
+  </div>
+</div></section>
+
+<!-- ============ 14 ============ -->
+<section class="chapter" id="c14"><div class="wrap">
+  <h2><span class="h2num">14</span>组合命令实战配方 <span style="color:var(--green);font-size:16px">★</span></h2>
+  <p class="lead">前面学的命令,真正的威力在于用管道<strong>串起来</strong>解决具体问题。每条配方都拆开讲每一段在干嘛。</p>
+
+  <div class="box note"><span class="bt">📖 一个通用范式</span>
+    <p>大多数"一行流"都长这样:<br>
+    <code>生成列表</code> <code>|</code> <code>过滤(grep)</code> <code>|</code> <code>变换(awk/cut)</code> <code>|</code>
+    <code>排序(sort)</code> <code>|</code> <code>取头部(head)</code> <code>|</code> <code>批量执行(xargs)</code>。
+    看懂这个骨架,再长的命令也能拆着读。</p>
+  </div>
+
+  <h3>① 找出最大的 5 个文件 → 删除</h3>
+  <p>先看清楚,再删。<strong>第一步只看,不删</strong>:</p>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">du</span> <span class="fl">-ah</span> . <span class="op">|</span> <span class="cm">sort</span> <span class="fl">-rh</span> <span class="op">|</span> <span class="cm">head</span> <span class="fl">-n</span> 5
+<span class="out">1.2G  ./data/dump.sql</span>
+<span class="out">800M  ./logs/app.log</span>
+<span class="out">...</span></pre></div>
+  <div class="tbl"><table>
+    <thead><tr><th>这一段</th><th>在干嘛</th></tr></thead>
+    <tbody>
+      <tr><td><code>du -ah .</code></td><td>列出当前目录下<strong>每个文件</strong>(-a)的大小,人类可读(-h)</td></tr>
+      <tr><td><code>sort -rh</code></td><td>按大小<strong>倒序</strong>排(-r),且能正确比较 1.2G &gt; 800M(-h 识别单位)</td></tr>
+      <tr><td><code>head -n 5</code></td><td>只取前 5 行</td></tr>
+    </tbody>
+  </table></div>
+  <p>确认无误后再删。用 <code>find</code> 按大小筛 + <code>-delete</code> 最安全:</p>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">find</span> . <span class="fl">-type</span> f <span class="fl">-size</span> <span class="op">+500M</span> <span class="fl">-print</span>     <span class="cmt"># 先看:大于 500M 的文件有哪些</span>
+<span class="pr">$</span> <span class="cm">find</span> . <span class="fl">-type</span> f <span class="fl">-size</span> <span class="op">+500M</span> <span class="fl">-delete</span>    <span class="cmt"># 眼睛确认后再删</span></pre></div>
+  <div class="box warn"><span class="bt">⚠️ 别用 <code>rm $(...)</code> 直接套娃</span>
+    <p>诱人但危险的写法 <code>rm $(du -ah | sort -rh | head -5 | ...)</code> 有两个雷:
+       ① 文件名<strong>带空格</strong>会被拆成多个参数,删错东西;② 看不到要删什么就执行了。
+       要批量删,优先 <code>find ... -delete</code>,或 <code>find ... -print0 | xargs -0 rm</code>(用 NUL 分隔防空格)。
+       <strong>永远先 <code>-print</code> 预览</strong>。</p>
+  </div>
+
+  <h3>② 日志里出现次数最多的 IP / URL(Top N)</h3>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">awk</span> <span class="st">'{print $1}'</span> access.log <span class="op">|</span> <span class="cm">sort</span> <span class="op">|</span> <span class="cm">uniq</span> <span class="fl">-c</span> <span class="op">|</span> <span class="cm">sort</span> <span class="fl">-rn</span> <span class="op">|</span> <span class="cm">head</span>
+<span class="out">  1532 203.0.113.7</span>
+<span class="out">   841 198.51.100.2</span></pre></div>
+  <div class="tbl"><table>
+    <tbody>
+      <tr><td><code>awk '{print $1}'</code></td><td>取每行第 1 列(访问 IP)</td></tr>
+      <tr><td><code>sort</code></td><td>排序,让相同 IP 挨在一起(uniq 的前提)</td></tr>
+      <tr><td><code>uniq -c</code></td><td>合并相同行并在前面<strong>计数</strong></td></tr>
+      <tr><td><code>sort -rn</code></td><td>按这个计数<strong>数字倒序</strong>排</td></tr>
+      <tr><td><code>head</code></td><td>取前 10(Top 10)</td></tr>
+    </tbody>
+  </table></div>
+  <p>这个 <strong><code>sort | uniq -c | sort -rn</code></strong> 三连是"统计频率"的万能套路,把 <code>$1</code> 换成 URL 列、状态码列即可复用。</p>
+
+  <h3>③ 批量重命名 / 批量改后缀</h3>
+  <div class="codeblock"><pre><span class="cmt"># 把所有 .txt 改成 .md(用 shell 循环,清晰可控)</span>
+<span class="pr">$</span> <span class="cm">for</span> f <span class="cm">in</span> *.txt; <span class="cm">do</span> <span class="cm">mv</span> <span class="st">"$f"</span> <span class="st">"${f%.txt}.md"</span>; <span class="cm">done</span>
+<span class="cmt"># ${f%.txt} = 去掉结尾的 .txt;注意 "$f" 一定加双引号防空格</span>
+
+<span class="cmt"># 找出并批量处理(文件名可能含空格的安全姿势)</span>
+<span class="pr">$</span> <span class="cm">find</span> . <span class="fl">-name</span> <span class="st">"*.jpeg"</span> <span class="fl">-print0</span> <span class="op">|</span> <span class="cm">xargs</span> <span class="fl">-0</span> <span class="fl">-I</span>{} <span class="cm">mv</span> {} {}.bak
+<span class="cmt"># -I{} = 用 {} 当占位符代表"每个文件名",这样能把文件名插到命令中间(而不只是接在末尾)</span></pre></div>
+
+  <h3>④ 其他常用一行流</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>目的</th><th>命令</th></tr></thead>
+    <tbody>
+      <tr><td>统计项目代码总行数</td><td><code>find . -name "*.py" | xargs wc -l | tail -1</code></td></tr>
+      <tr><td>最近 1 天改过的文件</td><td><code>find . -type f -mtime -1</code></td></tr>
+      <tr><td>各子目录占多大、排序</td><td><code>du -sh */ | sort -rh</code></td></tr>
+      <tr><td>实时看日志里的错误</td><td><code>tail -f app.log | grep --line-buffered -i error</code><br><span style="color:var(--fg-faint);font-size:12px">--line-buffered:逐行立即输出,管道里实时刷新不卡缓冲</span></td></tr>
+      <tr><td>杀掉某程序的所有进程</td><td><code>pgrep -f myapp | xargs kill</code></td></tr>
+      <tr><td>去重并计数某列</td><td><code>cut -d, -f3 data.csv | sort | uniq -c | sort -rn</code></td></tr>
+      <tr><td>看某进程实时资源</td><td><code>watch -n1 'ps -p $(pgrep -f myapp) -o %cpu,%mem'</code><br><span style="color:var(--fg-faint);font-size:12px">ps -p 指定 PID、-o 只输出指定列(这里要 CPU 和内存)</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="box tip"><span class="bt">💡 拆长命令的方法</span>
+    <p>遇到看不懂的一行流,用 <kbd>|</kbd> 把它<strong>切成几段,从左往右一段段跑</strong>:先只跑第一段看输出,
+       再加第二段……每一步都能看到中间结果,逻辑立刻清楚。这也是自己<strong>调试</strong>管道的标准方法。</p>
+  </div>
+</div></section>
+
+<!-- ============ 15 ============ -->
+<section class="chapter" id="c15"><div class="wrap">
+  <h2><span class="h2num">15</span>Shell 脚本基础 <span style="color:var(--green);font-size:16px">★</span></h2>
+  <p class="lead">你会 Python,编程概念跳过。这章只讲 bash <strong>跟你直觉不一样</strong>的那些点和坑。</p>
+
+  <h3>开头三件套:shebang + 可执行 + 健壮模式</h3>
+  <div class="codeblock"><pre><span class="cm">#!/usr/bin/env bash</span>          <span class="cmt"># shebang:告诉系统用 bash 跑它</span>
+<span class="cm">set</span> <span class="fl">-euo pipefail</span>            <span class="cmt"># 健壮模式(强烈建议,下面解释)</span>
+
+<span class="cm">echo</span> <span class="st">"hello"</span></pre></div>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">chmod</span> <span class="fl">+x</span> script.sh    <span class="cmt"># 加可执行权限</span>
+<span class="pr">$</span> ./script.sh             <span class="cmt"># 运行(或 bash script.sh 直接跑,不必 chmod)</span></pre></div>
+  <div class="box tip"><span class="bt">💡 <code>set -euo pipefail</code> 是什么,为什么开头就写</span>
+    <p>默认 bash 很"宽容",出错也继续往下跑,很危险。这行让脚本变严格:</p>
+    <ul style="margin:6px 0">
+      <li><code>-e</code> 任何命令出错(返回非 0)就<strong>立刻退出</strong>,不带病继续。</li>
+      <li><code>-u</code> 用到<strong>未定义变量</strong>就报错(防 <code>rm -rf $DIR/</code> 里 DIR 是空导致删根目录的惨剧)。</li>
+      <li><code>-o pipefail</code> 管道里<strong>任一环</strong>失败,整条算失败(否则只看最后一个命令)。</li>
+    </ul>
+    <p>把它当成 Python 里"该抛异常就抛异常",而不是默默吞掉。</p>
+  </div>
+
+  <h3>变量:和 Python 几个明显不同</h3>
+  <div class="codeblock"><pre><span class="va">name</span>=<span class="st">"world"</span>              <span class="cmt"># ① 等号两边不能有空格!name = "x" 会报错</span>
+<span class="cm">echo</span> <span class="st">"hi </span><span class="va">$name</span><span class="st">"</span>            <span class="cmt"># ② 用变量要加 $;字符串拼接直接挨着写</span>
+<span class="va">count</span>=$(<span class="cm">ls</span> <span class="op">|</span> <span class="cm">wc</span> <span class="fl">-l</span>)         <span class="cmt"># ③ $(...) 命令替换:把命令输出存进变量</span>
+<span class="va">total</span>=$((<span class="va">3</span> + <span class="va">5</span>))           <span class="cmt"># ④ $((...)) 才是算术;a+b 不会自动算数</span></pre></div>
+  <div class="box warn"><span class="bt">⚠️ 变量永远加双引号:<code>"$var"</code></span>
+    <p>这是 bash 第一大坑。不加引号,变量值里的<strong>空格会被拆成多个参数</strong>,空值会"消失"。</p>
+    <div class="codeblock"><pre><span class="va">f</span>=<span class="st">"my file.txt"</span>
+<span class="cm">rm</span> <span class="va">$f</span>      <span class="cmt"># ❌ 变成 rm my file.txt → 试图删 "my" 和 "file.txt" 两个</span>
+<span class="cm">rm</span> <span class="st">"</span><span class="va">$f</span><span class="st">"</span>    <span class="cmt"># ✅ 正确:当作一个文件名</span></pre></div>
+    <p>规则简单:<strong>除非你明确想要分词,否则一律 <code>"$var"</code></strong>。</p>
+  </div>
+
+  <h3>脚本参数与退出码</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>变量</th><th>含义</th></tr></thead>
+    <tbody>
+      <tr><td><code>$1 $2 …</code></td><td>第 1、2…个参数</td></tr>
+      <tr><td><code>$0</code></td><td>脚本自身的名字</td></tr>
+      <tr><td><code>$#</code></td><td>参数个数</td></tr>
+      <tr><td><code>"$@"</code></td><td>所有参数(各自独立,带引号最安全)</td></tr>
+      <tr><td><code>$?</code></td><td>上一条命令的<strong>退出码</strong>:0=成功,非 0=失败</td></tr>
+      <tr><td><code>$$</code></td><td>当前脚本的 PID</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>条件判断:<code>[[ ... ]]</code></h3>
+  <p>bash 的"if 后面跟的是命令",依命令<strong>退出码</strong>判断真假(0 为真)。测试条件用 <code>[[ ]]</code>:</p>
+  <div class="codeblock"><pre><span class="cm">if</span> [[ <span class="st">"$count"</span> <span class="fl">-gt</span> 0 ]]; <span class="cm">then</span>
+    <span class="cm">echo</span> <span class="st">"有文件"</span>
+<span class="cm">elif</span> [[ <span class="fl">-z</span> <span class="st">"$name"</span> ]]; <span class="cm">then</span>      <span class="cmt"># -z:字符串为空</span>
+    <span class="cm">echo</span> <span class="st">"name 是空的"</span>
+<span class="cm">else</span>
+    <span class="cm">echo</span> <span class="st">"其他"</span>
+<span class="cm">fi</span></pre></div>
+  <div class="tbl"><table>
+    <thead><tr><th>数字比较</th><th>字符串</th><th>文件</th></tr></thead>
+    <tbody>
+      <tr><td><code>-eq -ne</code> 等于/不等</td><td><code>=</code> <code>!=</code> 相等</td><td><code>-f</code> 是文件</td></tr>
+      <tr><td><code>-gt -lt</code> 大于/小于</td><td><code>-z</code> 为空</td><td><code>-d</code> 是目录</td></tr>
+      <tr><td><code>-ge -le</code> ≥/≤</td><td><code>-n</code> 非空</td><td><code>-e</code> 存在</td></tr>
+    </tbody>
+  </table></div>
+  <div class="box warn"><span class="bt">⚠️ 数字比较别用 <code>&gt;</code></span>
+    <p>在 <code>[[ ]]</code> 里比数字大小用 <code>-gt</code>/<code>-lt</code>,<strong>不是</strong> <code>&gt;</code>(那会被当成重定向)。
+       字符串相等才用 <code>=</code>。容易记混。</p>
+  </div>
+
+  <h3>循环与短路</h3>
+  <div class="codeblock"><pre><span class="cm">for</span> f <span class="cm">in</span> *.log; <span class="cm">do</span>           <span class="cmt"># 遍历文件</span>
+    <span class="cm">echo</span> <span class="st">"处理 </span><span class="va">$f</span><span class="st">"</span>
+<span class="cm">done</span>
+
+<span class="cm">while</span> <span class="cm">read</span> line; <span class="cm">do</span>          <span class="cmt"># 逐行读文件</span>
+    <span class="cm">echo</span> <span class="st">"&gt; </span><span class="va">$line</span><span class="st">"</span>
+<span class="cm">done</span> <span class="op">&lt;</span> input.txt
+
+<span class="cm">mkdir</span> /tmp/x <span class="op">&amp;&amp;</span> <span class="cm">cd</span> /tmp/x   <span class="cmt"># && 前者成功才执行后者</span>
+<span class="cm">ping</span> <span class="fl">-c1</span> host <span class="op">||</span> <span class="cm">echo</span> <span class="st">"不通"</span>  <span class="cmt"># -c1=只 ping 一次(count);|| 前者失败才执行后者</span></pre></div>
+
+  <h3>函数,以及一个完整范例</h3>
+  <div class="codeblock"><pre><span class="cm">#!/usr/bin/env bash</span>
+<span class="cm">set</span> <span class="fl">-euo pipefail</span>
+
+<span class="cm">log</span>() {                          <span class="cmt"># 定义函数,参数同样用 $1 $2</span>
+    <span class="cm">echo</span> <span class="st">"[</span>$(<span class="cm">date</span> <span class="st">+%H:%M:%S</span>)<span class="st">] </span><span class="va">$1</span><span class="st">"</span>
+}
+
+<span class="va">target</span>=<span class="st">"${1:-/tmp}"</span>            <span class="cmt"># 取第 1 个参数,没传则默认 /tmp</span>
+
+<span class="cm">if</span> [[ ! <span class="fl">-d</span> <span class="st">"$target"</span> ]]; <span class="cm">then</span>
+    <span class="cm">log</span> <span class="st">"目录不存在: </span><span class="va">$target</span><span class="st">"</span>
+    <span class="cm">exit</span> 1                       <span class="cmt"># 以非 0 退出码表示失败</span>
+<span class="cm">fi</span>
+
+<span class="va">n</span>=$(<span class="cm">find</span> <span class="st">"$target"</span> <span class="fl">-type</span> f <span class="op">|</span> <span class="cm">wc</span> <span class="fl">-l</span>)
+<span class="cm">log</span> <span class="st">"</span><span class="va">$target</span><span class="st"> 下有 </span><span class="va">$n</span><span class="st"> 个文件"</span></pre></div>
+  <div class="box note"><span class="bt">📖 函数"返回值"的约定</span>
+    <p>bash 函数的 <code>return</code> 只能返回 <strong>0-255 的退出码</strong>(表示成功/失败),
+       <strong>不是</strong>返回数据。要"返回"一个值,惯用做法是函数里 <code>echo</code> 出来,调用处用 <code>x=$(myfunc)</code> 接住。
+       <code>"${1:-默认值}"</code> 是"参数没给就用默认值"的常用写法。</p>
+  </div>
+</div></section>
+
+<!-- ============ 16 ============ -->
+<section class="chapter" id="c16"><div class="wrap">
+  <h2><span class="h2num">16</span>Vim 系统教学 <span style="color:var(--green);font-size:16px">★</span></h2>
+  <p class="lead">Vim 不是"难",是它有一套<strong>和别的编辑器完全不同的心智模型</strong>。理解了模型,快捷键就不是死记了。</p>
+
+  <h3>核心心智模型:模式(Mode)</h3>
+  <p>普通编辑器你打字就上屏。Vim 不是——它大部分时间在 <strong>Normal(普通)模式</strong>,这时键盘上的字母<strong>不是输入文字,而是命令</strong>。
+     这正是它高效的原因:整个键盘都成了快捷键。</p>
+  <div class="tbl"><table>
+    <thead><tr><th>模式</th><th>干什么</th><th>怎么进</th><th>怎么回 Normal</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Normal</strong> 普通</td><td>移动、删除、复制(默认模式,命令的家)</td><td>启动即在此</td><td>—</td></tr>
+      <tr><td><strong>Insert</strong> 插入</td><td>真正打字输入</td><td><kbd>i</kbd> <kbd>a</kbd> <kbd>o</kbd> 等</td><td><kbd>Esc</kbd></td></tr>
+      <tr><td><strong>Visual</strong> 可视</td><td>选中文本</td><td><kbd>v</kbd> <kbd>V</kbd> <kbd>Ctrl</kbd>+<kbd>v</kbd></td><td><kbd>Esc</kbd></td></tr>
+      <tr><td><strong>Command</strong> 命令行</td><td>保存退出、查找替换、设置</td><td><kbd>:</kbd></td><td><kbd>Esc</kbd> / 回车</td></tr>
+    </tbody>
+  </table></div>
+  <div class="box tip"><span class="bt">💡 黄金法则</span>
+    <p><strong>迷路了、不知道在哪个模式,就按 <kbd>Esc</kbd> 回到 Normal</strong>。一切从 Normal 出发。
+       左下角会显示 <code>-- INSERT --</code> 之类提示当前模式。新手最常见困惑就是"在 Normal 模式狂打字却没反应/触发奇怪操作"——那是你忘了先按 <kbd>i</kbd>。</p>
+  </div>
+
+  <h3>第一课:活着出来</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>命令</th><th>作用</th></tr></thead>
+    <tbody>
+      <tr><td><code>:w</code></td><td>保存(write)</td></tr>
+      <tr><td><code>:q</code></td><td>退出(quit)</td></tr>
+      <tr><td><code>:wq</code> 或 <code>ZZ</code></td><td>保存并退出</td></tr>
+      <tr><td><code>:q!</code></td><td><strong>不保存强制退出</strong>(改乱了想放弃)</td></tr>
+      <tr><td><code>:wq!</code></td><td>强制保存退出(如只读文件)</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>移动(Normal 模式):手不离主键区</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>键</th><th>移动</th><th>键</th><th>移动</th></tr></thead>
+    <tbody>
+      <tr><td><kbd>h</kbd> <kbd>j</kbd> <kbd>k</kbd> <kbd>l</kbd></td><td>左 下 上 右</td><td><kbd>0</kbd> / <kbd>$</kbd></td><td>行首 / 行尾</td></tr>
+      <tr><td><kbd>w</kbd> / <kbd>b</kbd></td><td>下/上一个词首</td><td><kbd>^</kbd></td><td>行首第一个非空字符</td></tr>
+      <tr><td><kbd>e</kbd></td><td>词尾</td><td><kbd>gg</kbd> / <kbd>G</kbd></td><td>文件开头 / 结尾</td></tr>
+      <tr><td><kbd>{</kbd> / <kbd>}</kbd></td><td>上/下一个段落(空行)</td><td><kbd>:42</kbd> 或 <kbd>42G</kbd></td><td>跳到第 42 行</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>d</kbd> / <kbd>u</kbd></td><td>下/上翻半屏</td><td><kbd>%</kbd></td><td>跳到配对的括号</td></tr>
+      <tr><td><kbd>f</kbd>x</td><td>本行跳到下一个字符 x 上</td><td><kbd>t</kbd>x</td><td>跳到 x <strong>前一个</strong>字符</td></tr>
+    </tbody>
+  </table></div>
+  <div class="box tip"><span class="bt">💡 数字 + 命令 = 重复</span>
+    <p>几乎所有命令前面都能加<strong>次数</strong>:<kbd>5</kbd><kbd>j</kbd>=下移 5 行,<kbd>3</kbd><kbd>w</kbd>=前进 3 个词。
+       这是 Vim 的"语法"之一,后面编辑命令也通用。</p>
+  </div>
+
+  <h3>进入 Insert 模式的几种方式(位置不同)</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>键</th><th>在哪开始输入</th></tr></thead>
+    <tbody>
+      <tr><td><kbd>i</kbd> / <kbd>a</kbd></td><td>光标<strong>前</strong> / <strong>后</strong>插入(insert / append)</td></tr>
+      <tr><td><kbd>I</kbd> / <kbd>A</kbd></td><td>跳到<strong>行首</strong> / <strong>行尾</strong>再插入</td></tr>
+      <tr><td><kbd>o</kbd> / <kbd>O</kbd></td><td>在<strong>下方</strong> / <strong>上方</strong>新开一行再插入</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>编辑的"语法":动作 + 范围(最重要的一节)</h3>
+  <p>这是 Vim 真正的精髓。很多命令是 <strong>operator(动作)+ motion(移动范围)</strong> 组合出来的,像搭乐高:</p>
+  <div class="flow">
+    <span class="node hl">operator</span><span style="color:var(--fg-faint)">d 删 / c 改 / y 复制</span>
+    <span class="arr">+</span>
+    <span class="node hl">motion</span><span style="color:var(--fg-faint)">w 词 / $ 到行尾 / } 段落</span>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>组合</th><th>含义</th></tr></thead>
+    <tbody>
+      <tr><td><code>dw</code></td><td>delete word,删一个词</td></tr>
+      <tr><td><code>d$</code> (=<code>D</code>)</td><td>删到行尾</td></tr>
+      <tr><td><code>d2w</code></td><td>删 2 个词(加了次数)</td></tr>
+      <tr><td><code>cw</code></td><td>change word:删一个词<strong>并进入插入模式</strong>(改词)</td></tr>
+      <tr><td><code>y$</code></td><td>复制到行尾(yank)</td></tr>
+      <tr><td><code>dd</code> / <code>yy</code> / <code>cc</code></td><td>删 / 复制 / 改<strong>整行</strong>(动作字母重复=整行)</td></tr>
+    </tbody>
+  </table></div>
+  <h4>文本对象:i / a + 对象(超好用)</h4>
+  <p>把范围换成"文本对象"——<code>i</code>=inner 里面,<code>a</code>=a 包含边界:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>组合</th><th>含义</th></tr></thead>
+    <tbody>
+      <tr><td><code>ciw</code></td><td>change inner word:改光标所在的<strong>整个词</strong>(不管光标在词中哪)</td></tr>
+      <tr><td><code>ci"</code></td><td>改一对引号<strong>里面</strong>的内容(<code>ci(</code> <code>ci{</code> 同理)</td></tr>
+      <tr><td><code>di(</code></td><td>删括号里的内容</td></tr>
+      <tr><td><code>dap</code> / <code>dip</code></td><td>删一个段落(含/不含周围空行)</td></tr>
+      <tr><td><code>dit</code> / <code>cit</code></td><td>删/改一对 HTML 标签里的内容</td></tr>
+    </tbody>
+  </table></div>
+  <div class="box tip"><span class="bt">💡 一旦理解组合,就不用死记了</span>
+    <p>你只要记住几个 operator(<code>d c y</code>)和几个 motion/对象(<code>w $ iw i" ip</code>),就能<strong>自由组合</strong>出几十个命令。
+       想"改函数参数"?光标移进括号,<code>ci(</code>。想"删这行注释到结尾"?<code>d$</code>。这才是 Vim 高效的来源。</p>
+  </div>
+
+  <h3>删 / 复制 / 粘贴 / 撤销</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>键</th><th>作用</th></tr></thead>
+    <tbody>
+      <tr><td><kbd>x</kbd></td><td>删光标下一个字符</td></tr>
+      <tr><td><kbd>d</kbd><kbd>d</kbd> / <kbd>y</kbd><kbd>y</kbd></td><td>剪切(删) / 复制 整行</td></tr>
+      <tr><td><kbd>p</kbd> / <kbd>P</kbd></td><td>粘贴到光标<strong>后</strong> / <strong>前</strong>(行级则是下一行/上一行)</td></tr>
+      <tr><td><kbd>u</kbd></td><td>撤销(undo),可连按</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>r</kbd></td><td>重做(redo)</td></tr>
+      <tr><td><kbd>.</kbd></td><td><strong>重复上一次修改</strong>(神级功能,见下)</td></tr>
+      <tr><td><kbd>r</kbd>x</td><td>把当前字符替换成 x(单字符,不进插入模式)</td></tr>
+      <tr><td><kbd>J</kbd></td><td>把下一行接到本行末尾(合并行)</td></tr>
+    </tbody>
+  </table></div>
+  <div class="box note"><span class="bt">📖 <kbd>.</kbd> 重复命令为什么神</span>
+    <p><code>.</code> 会重复你上一次的<strong>修改动作</strong>。比如你用 <code>ciw新词Esc</code> 改了一个词,
+       移到下一个同类词按 <code>.</code> 就重做一遍。配合 <kbd>n</kbd>(下一个搜索结果),
+       "搜 → 改一处 → <kbd>n</kbd> <kbd>.</kbd> <kbd>n</kbd> <kbd>.</kbd>"是不用正则替换也能精准批改的常用流。</p>
+  </div>
+
+  <h3>搜索与替换</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>命令</th><th>作用</th></tr></thead>
+    <tbody>
+      <tr><td><code>/word</code></td><td>向<strong>下</strong>搜 word,回车</td></tr>
+      <tr><td><code>?word</code></td><td>向<strong>上</strong>搜</td></tr>
+      <tr><td><kbd>n</kbd> / <kbd>N</kbd></td><td>跳下一个 / 上一个匹配</td></tr>
+      <tr><td><kbd>*</kbd></td><td>直接搜光标下的那个词(超快)</td></tr>
+    </tbody>
+  </table></div>
+  <p>替换用命令行,语法 <code>:范围s/旧/新/标志</code>:</p>
+  <div class="codeblock"><pre>:s/foo/bar/           <span class="cmt"># 当前行第一个 foo → bar</span>
+:s/foo/bar/g          <span class="cmt"># 当前行所有 foo(g=global 本行全部)</span>
+:%s/foo/bar/g         <span class="cmt"># % = 整个文件,所有 foo → bar(最常用)</span>
+:%s/foo/bar/gc        <span class="cmt"># c = 每处替换前问你 y/n(确认)</span>
+:10,20s/foo/bar/g     <span class="cmt"># 只在第 10~20 行替换</span>
+:%s/\s\+$//           <span class="cmt"># 删除每行末尾的空白</span></pre></div>
+  <div class="box note"><span class="bt">📖 范围(range)长这样</span>
+    <p><code>s</code> 前面的部分是<strong>范围</strong>:<code>%</code>=全文、<code>10,20</code>=行区间、
+       <code>'&lt;,'&gt;</code>=可视模式选中的部分(先 <kbd>V</kbd> 选行再 <kbd>:</kbd>,Vim 会自动填好)。和第 5 章 sed 的 <code>s///</code> 是同源的。</p>
+  </div>
+
+  <h3>进阶:可视模式 / 寄存器 / 宏 / 标记 / 分屏</h3>
+  <h4>可视模式(选区)</h4>
+  <div class="tbl"><table>
+    <tbody>
+      <tr><td><kbd>v</kbd></td><td>按字符选;选完可 <kbd>d</kbd> 删、<kbd>y</kbd> 复制、<kbd>c</kbd> 改</td></tr>
+      <tr><td><kbd>V</kbd></td><td>按整行选</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>v</kbd></td><td><strong>列块选择</strong>:选中一个矩形区域,能多行同时插入/删除(如批量加注释)</td></tr>
+    </tbody>
+  </table></div>
+  <h4>寄存器(剪贴板)与系统剪贴板</h4>
+  <p>Vim 的复制默认进自己的寄存器,和系统剪贴板分开。想和系统互通,用 <code>"+</code> 寄存器:</p>
+  <div class="codeblock"><pre>"+y    <span class="cmt"># 复制到系统剪贴板(在外面能 Ctrl-V 粘)</span>
+"+p    <span class="cmt"># 粘贴系统剪贴板的内容</span>
+"ayy   <span class="cmt"># 复制整行到名为 a 的寄存器;"ap 取出</span></pre></div>
+  <div class="box warn"><span class="bt">⚠️ 粘贴代码乱缩进?</span>
+    <p>从外部粘代码进 Insert 模式,自动缩进会把它"阶梯化"。进入前先 <code>:set paste</code>,粘完 <code>:set nopaste</code>;
+       或直接用 <code>"+p</code> 在 Normal 模式粘。</p>
+  </div>
+  <h4>宏:录制一串操作反复回放</h4>
+  <div class="codeblock"><pre>q a          <span class="cmt"># 开始录制到寄存器 a(左下角显示 recording)</span>
+... 一通操作 ...
+q            <span class="cmt"># 停止录制</span>
+@a           <span class="cmt"># 回放一次</span>
+10@a         <span class="cmt"># 回放 10 次(批处理重复编辑神器)</span></pre></div>
+  <h4>标记与分屏</h4>
+  <div class="tbl"><table>
+    <tbody>
+      <tr><td><code>ma</code> … <code>`a</code></td><td>在当前位置打标记 a,之后 <code>`a</code> 跳回来</td></tr>
+      <tr><td><code>:sp</code> / <code>:vsp</code></td><td>水平 / 垂直分屏</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>w</kbd> 然后方向键</td><td>在分屏间切换</td></tr>
+      <tr><td><code>:e 文件</code></td><td>在当前窗口打开另一个文件</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>配置:.vimrc</h3>
+  <p>放在 <code>~/.vimrc</code>,每次启动自动加载。一份够用的起步配置:</p>
+  <div class="codeblock"><pre><span class="cmt">" ~/.vimrc(双引号是 vim 配置文件的注释)</span>
+<span class="cm">syntax</span> on              <span class="cmt"># 语法高亮</span>
+<span class="cm">set</span> number             <span class="cmt"># 显示行号</span>
+<span class="cm">set</span> relativenumber     <span class="cmt"># 相对行号(配合 5j/3k 跳转很爽)</span>
+<span class="cm">set</span> tabstop=4 shiftwidth=4 expandtab   <span class="cmt"># Tab=4 空格</span>
+<span class="cm">set</span> ignorecase smartcase             <span class="cmt"># 搜索忽略大小写,但含大写时区分</span>
+<span class="cm">set</span> incsearch hlsearch  <span class="cmt"># 边打边搜 + 高亮所有匹配</span>
+<span class="cm">set</span> clipboard=unnamedplus             <span class="cmt"># 直接用系统剪贴板(需 vim 支持)</span></pre></div>
+  <div class="box tip"><span class="bt">💡 不用记全,练这条主线最划算</span>
+    <p>新手只要先把这条流练成肌肉记忆:<strong><kbd>Esc</kbd> 回 Normal → <kbd>i</kbd>/<kbd>o</kbd> 进插入打字 →
+       <kbd>Esc</kbd> → <code>:wq</code> 保存退出</strong>。然后逐步加 <code>dd / yy / p / u / /搜索 / ciw / .</code>。
+       一周后你就离不开它了。系统内置教程也很好:命令行敲 <code>vimtutor</code> 跟着练 30 分钟。</p>
+  </div>
+</div></section>
+
+<!-- ============ 17 ============ -->
+<section class="chapter" id="c17"><div class="wrap">
+  <h2><span class="h2num">17</span>速查附录</h2>
+  <p class="lead">日后忘了直接翻这里。按主题分卡片。</p>
+
+  <h3>命令速查</h3>
+  <div class="cards">
+    <div class="card"><h4>文件 / 目录</h4><table><tbody>
+      <tr><td><code>ls -lah</code></td><td>详列含隐藏</td></tr>
+      <tr><td><code>ls -ltr</code></td><td>按时间,新在底</td></tr>
+      <tr><td><code>cd -</code></td><td>回上个目录</td></tr>
+      <tr><td><code>tree -L 2</code></td><td>树状看两层</td></tr>
+      <tr><td><code>cp -r</code></td><td>复制目录</td></tr>
+      <tr><td><code>rm -rf</code></td><td>强删目录(慎)</td></tr>
+      <tr><td><code>tail -f</code></td><td>实时追日志</td></tr>
+    </tbody></table></div>
+    <div class="card"><h4>重定向 / 管道</h4><table><tbody>
+      <tr><td><code>&gt;</code> / <code>&gt;&gt;</code></td><td>覆盖 / 追加</td></tr>
+      <tr><td><code>2&gt;</code></td><td>只存错误</td></tr>
+      <tr><td><code>&gt;f 2&gt;&amp;1</code></td><td>结果+错误都存</td></tr>
+      <tr><td><code>2&gt;/dev/null</code></td><td>丢弃错误</td></tr>
+      <tr><td><code>|</code></td><td>接到下一命令</td></tr>
+      <tr><td><code>| tee f</code></td><td>存档兼往下传</td></tr>
+    </tbody></table></div>
+    <div class="card"><h4>查找 / 文本</h4><table><tbody>
+      <tr><td><code>grep -rn</code></td><td>递归搜内容</td></tr>
+      <tr><td><code>grep -i -v</code></td><td>忽略大小写/反选</td></tr>
+      <tr><td><code>find . -name</code></td><td>按名找文件</td></tr>
+      <tr><td><code>find -mtime -1</code></td><td>1 天内改的</td></tr>
+      <tr><td><code>sed -i s/a/b/g</code></td><td>原地替换</td></tr>
+      <tr><td><code>awk '{print $1}'</code></td><td>取第 1 列</td></tr>
+    </tbody></table></div>
+    <div class="card"><h4>进程 / 信号</h4><table><tbody>
+      <tr><td><code>ps aux | grep</code></td><td>找进程</td></tr>
+      <tr><td><code>pgrep -af</code></td><td>按名列 PID</td></tr>
+      <tr><td><code>kill PID</code></td><td>优雅退出(先试)</td></tr>
+      <tr><td><code>kill -9 PID</code></td><td>强杀(最后)</td></tr>
+      <tr><td><code>pkill -f</code></td><td>按命令行杀</td></tr>
+      <tr><td><code>Ctrl-Z / bg</code></td><td>挂起/转后台</td></tr>
+    </tbody></table></div>
+    <div class="card"><h4>权限 / 归属</h4><table><tbody>
+      <tr><td><code>chmod 755</code></td><td>rwxr-xr-x</td></tr>
+      <tr><td><code>chmod 644</code></td><td>rw-r--r--</td></tr>
+      <tr><td><code>chmod +x</code></td><td>加执行权</td></tr>
+      <tr><td><code>chown u:g f</code></td><td>改属主:属组</td></tr>
+      <tr><td><code>chown -R $USER:$USER</code></td><td>收回归属</td></tr>
+      <tr><td><code>ls -l / -ld</code></td><td>看归属/看目录本身</td></tr>
+    </tbody></table></div>
+    <div class="card"><h4>传输 / 远程</h4><table><tbody>
+      <tr><td><code>scp -r</code></td><td>复制目录</td></tr>
+      <tr><td><code>scp -P 端口</code></td><td>大写 P!</td></tr>
+      <tr><td><code>rsync -avz</code></td><td>增量同步</td></tr>
+      <tr><td><code>ssh -L</code></td><td>端口转发</td></tr>
+      <tr><td><code>curl -OL</code></td><td>下载+跟跳转</td></tr>
+      <tr><td><code>wget -c</code></td><td>断点续传</td></tr>
+    </tbody></table></div>
+    <div class="card"><h4>排查 / 磁盘</h4><table><tbody>
+      <tr><td><code>ss -tlnp</code></td><td>谁占了端口</td></tr>
+      <tr><td><code>lsof -i :端口</code></td><td>同上,更直观</td></tr>
+      <tr><td><code>df -h</code></td><td>分区用量</td></tr>
+      <tr><td><code>du -sh *</code></td><td>各项多大</td></tr>
+      <tr><td><code>journalctl -u -f</code></td><td>跟踪服务日志</td></tr>
+      <tr><td><code>watch -n2</code></td><td>每 2 秒刷新</td></tr>
+    </tbody></table></div>
+  </div>
+
+  <h3>正则速查(grep -E / sed / vim 通用)</h3>
+  <div class="cards">
+    <div class="card"><h4>匹配单字符</h4><table><tbody>
+      <tr><td><code>.</code></td><td>任意一个字符</td></tr>
+      <tr><td><code>[abc]</code></td><td>其中任一个</td></tr>
+      <tr><td><code>[^abc]</code></td><td>除这些之外</td></tr>
+      <tr><td><code>[0-9]</code></td><td>数字范围</td></tr>
+      <tr><td><code>\.</code></td><td>字面的点</td></tr>
+    </tbody></table></div>
+    <div class="card"><h4>重复次数(ERE)</h4><table><tbody>
+      <tr><td><code>*</code></td><td>前一个 ≥0 次</td></tr>
+      <tr><td><code>+</code></td><td>前一个 ≥1 次</td></tr>
+      <tr><td><code>?</code></td><td>前一个 0 或 1 次</td></tr>
+      <tr><td><code>{2,4}</code></td><td>2 到 4 次</td></tr>
+    </tbody></table></div>
+    <div class="card"><h4>锚点 / 分组</h4><table><tbody>
+      <tr><td><code>^</code> / <code>$</code></td><td>行首 / 行尾</td></tr>
+      <tr><td><code>a|b</code></td><td>a 或 b</td></tr>
+      <tr><td><code>(ab)+</code></td><td>分组重复</td></tr>
+      <tr><td><code>\w</code> <code>\s</code></td><td>词字符 / 空白</td></tr>
+    </tbody></table></div>
+  </div>
+
+  <h3>组合配方速查</h3>
+  <div class="cards">
+    <div class="card"><h4>统计 / Top N</h4><table><tbody>
+      <tr><td colspan="2"><code>... | sort | uniq -c | sort -rn | head</code></td></tr>
+      <tr><td colspan="2" style="color:var(--fg-dim)">频率统计万能套路</td></tr>
+    </tbody></table></div>
+    <div class="card"><h4>找大文件</h4><table><tbody>
+      <tr><td colspan="2"><code>du -ah | sort -rh | head -5</code></td></tr>
+      <tr><td colspan="2"><code>find . -size +500M -print</code></td></tr>
+    </tbody></table></div>
+    <div class="card"><h4>安全批量删</h4><table><tbody>
+      <tr><td colspan="2"><code>find … -print</code> 先看</td></tr>
+      <tr><td colspan="2"><code>find … -delete</code> 再删</td></tr>
+    </tbody></table></div>
+  </div>
+
+  <h3>Vim 速查</h3>
+  <div class="cards">
+    <div class="card"><h4>救命 / 模式</h4><table><tbody>
+      <tr><td><kbd>Esc</kbd></td><td>回 Normal</td></tr>
+      <tr><td><code>i a o</code></td><td>插入/追加/开行</td></tr>
+      <tr><td><code>:w :q :wq</code></td><td>存/退/存退</td></tr>
+      <tr><td><code>:q!</code></td><td>弃改强退</td></tr>
+    </tbody></table></div>
+    <div class="card"><h4>移动</h4><table><tbody>
+      <tr><td><code>0 $ ^</code></td><td>行首/尾</td></tr>
+      <tr><td><code>w b e</code></td><td>按词移动</td></tr>
+      <tr><td><code>gg G</code></td><td>文件头/尾</td></tr>
+      <tr><td><code>42G</code></td><td>跳第 42 行</td></tr>
+    </tbody></table></div>
+    <div class="card"><h4>编辑(动作+范围)</h4><table><tbody>
+      <tr><td><code>dd yy p</code></td><td>剪/复制行/粘贴</td></tr>
+      <tr><td><code>dw cw</code></td><td>删词/改词</td></tr>
+      <tr><td><code>ciw ci"</code></td><td>改词/改引号内</td></tr>
+      <tr><td><code>u Ctrl-r .</code></td><td>撤销/重做/重复</td></tr>
+    </tbody></table></div>
+    <div class="card"><h4>搜索替换</h4><table><tbody>
+      <tr><td><code>/word n N</code></td><td>搜/下/上</td></tr>
+      <tr><td><code>*</code></td><td>搜光标处的词</td></tr>
+      <tr><td><code>:%s/a/b/g</code></td><td>全文替换</td></tr>
+      <tr><td><code>:%s/a/b/gc</code></td><td>替换前确认</td></tr>
+    </tbody></table></div>
+  </div>
+
+  <div class="box tip" style="margin-top:30px"><span class="bt">🎯 怎么用这份手册</span>
+    <p>别想一次背完。<strong>挑你这周真会用到的 5 个命令</strong>,在服务器上敲三遍记住,下周再来 5 个。
+       重点章节(★)多读几遍。Vim 从 <code>vimtutor</code> 开始练。三个月后回头看,你会发现自己已经"系统地懂 Linux"了。</p>
+  </div>
+</div></section>
+
+</main>
+
+<script>
+(function(){
+  // 复制按钮
+  document.querySelectorAll('.codeblock').forEach(function(b){
+    var pre=b.querySelector('pre');if(!pre)return;
+    var btn=document.createElement('button');btn.className='copy';btn.textContent='复制';
+    btn.addEventListener('click',function(){
+      var t=pre.innerText.replace(/^\s*\$ /gm,'').replace(/^\s*# /gm,'');
+      navigator.clipboard.writeText(pre.innerText).then(function(){
+        btn.textContent='已复制';btn.classList.add('done');
+        setTimeout(function(){btn.textContent='复制';btn.classList.remove('done')},1400);
+      });
+    });
+    b.appendChild(btn);
+  });
+
+  // 目录滚动高亮
+  var links=Array.prototype.slice.call(document.querySelectorAll('#toc a'));
+  var map={};links.forEach(function(a){map[a.getAttribute('href').slice(1)]=a;});
+  var secs=Array.prototype.slice.call(document.querySelectorAll('section.chapter'));
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(e.isIntersecting){
+        links.forEach(function(a){a.classList.remove('active')});
+        var a=map[e.target.id];
+        if(a){a.classList.add('active');
+          a.scrollIntoView({block:'nearest'});}
+      }
+    });
+  },{rootMargin:'-15% 0px -78% 0px',threshold:0});
+  secs.forEach(function(s){io.observe(s)});
+
+  // 移动端目录
+  var sb=document.getElementById('sidebar'),bd=document.getElementById('backdrop'),
+      mb=document.getElementById('menuBtn');
+  function close(){sb.classList.remove('open');bd.classList.remove('show')}
+  if(mb)mb.addEventListener('click',function(){sb.classList.toggle('open');bd.classList.toggle('show')});
+  if(bd)bd.addEventListener('click',close);
+  document.querySelectorAll('#toc a').forEach(function(a){a.addEventListener('click',function(){if(window.innerWidth<=980)close();})});
+})();
+</script>
+</body>
+</html>
