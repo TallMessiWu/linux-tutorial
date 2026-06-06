@@ -215,6 +215,8 @@
     <a href="#c15"><span class="num">15</span>Shell 脚本基础 ★</a>
     <a href="#c16"><span class="num">16</span>Vim 系统教学 ★</a>
     <a href="#c17"><span class="num">17</span>速查附录</a>
+    <a href="#c18"><span class="num">18</span>压缩与归档 tar/zip ★</a>
+    <a href="#c19"><span class="num">19</span>Git 实战（含 worktree）★</a>
   </nav>
 </aside>
 <div id="backdrop"></div>
@@ -972,6 +974,7 @@
   </table></div>
   <p>跨平台传给 Windows 用户,用 <code>zip -r out.zip dir/</code> 打包、<code>unzip out.zip</code> 解开更通用。
      单个文件压缩用 <code>gzip file</code>(变 <code>file.gz</code>)、<code>gunzip file.gz</code> 还原。</p>
+  <p style="margin-top:12px">📦 更多内容（管道传输、排除文件、zip 加密、压缩格式对比）见 <a href="#c18" style="color:var(--blue)">第 18 章 · 压缩与归档</a>。</p>
 </div></section>
 
 <!-- ============ 9 ============ -->
@@ -1706,7 +1709,23 @@ q            <span class="cmt"># 停止录制</span>
       <tr><td><code>journalctl -u -f</code></td><td>跟踪服务日志</td></tr>
       <tr><td><code>watch -n2</code></td><td>每 2 秒刷新</td></tr>
     </tbody></table></div>
-  </div>
+    <div class="card"><h4>压缩 / 归档</h4><table><tbody>
+      <tr><td><code>tar -czf x.tar.gz dir/</code></td><td>打包+压缩</td></tr>
+      <tr><td><code>tar -xzf x.tar.gz</code></td><td>解压</td></tr>
+      <tr><td><code>tar -tzf x.tar.gz</code></td><td>只看不解</td></tr>
+      <tr><td><code>tar -xJf x.tar.xz -C /opt</code></td><td>解 .xz 到指定目录</td></tr>
+      <tr><td><code>zip -r x.zip dir/</code></td><td>跨平台打包</td></tr>
+      <tr><td><code>unzip -l x.zip</code></td><td>查看 zip 内容</td></tr>
+    </tbody></table></div>
+    <div class="card"><h4>Git</h4><table><tbody>
+      <tr><td><code>git status -s</code></td><td>精简状态</td></tr>
+      <tr><td><code>git switch -c name</code></td><td>创建+切换分支</td></tr>
+      <tr><td><code>git log --oneline --graph</code></td><td>ASCII 分支图</td></tr>
+      <tr><td><code>git rebase -i HEAD~3</code></td><td>整理最近 3 个 commit</td></tr>
+      <tr><td><code>git worktree add ../dir br</code></td><td>新 worktree</td></tr>
+      <tr><td><code>git reflog</code></td><td>操作历史（救命）</td></tr>
+    </tbody></table></div>  </div>
+
 
   <h3>正则速查(grep -E / sed / vim 通用)</h3>
   <div class="cards">
@@ -1778,6 +1797,445 @@ q            <span class="cmt"># 停止录制</span>
   <div class="box tip" style="margin-top:30px"><span class="bt">🎯 怎么用这份手册</span>
     <p>别想一次背完。<strong>挑你这周真会用到的 5 个命令</strong>,在服务器上敲三遍记住,下周再来 5 个。
        重点章节(★)多读几遍。Vim 从 <code>vimtutor</code> 开始练。三个月后回头看,你会发现自己已经"系统地懂 Linux"了。</p>
+  </div>
+</div></section>
+<!-- ============ 18 ============ -->
+<section class="chapter" id="c18"><div class="wrap">
+  <h2><span class="h2num">18</span>压缩与归档 tar/zip <span style="color:var(--green);font-size:16px">★</span></h2>
+  <p class="lead">把一堆文件打成包、压成小体积——备份、分发、传输前的必修课。这章把 tar / gzip / zip 一次讲透。</p>
+
+  <h3>概念先行：归档 vs 压缩</h3>
+  <p>这是两个独立动作，只是经常一起做：</p>
+  <div class="tbl"><table>
+    <thead><tr><th>动作</th><th>干什么</th><th>典型工具</th></tr></thead>
+    <tbody>
+      <tr><td><strong>归档 archive</strong></td><td>把多个文件/目录<strong>捆成一个文件</strong>，保留目录结构和元信息（权限、时间戳）</td><td><code>tar</code></td></tr>
+      <tr><td><strong>压缩 compress</strong></td><td>把数据<strong>用算法压小</strong>（去冗余），省磁盘/省传输时间</td><td><code>gzip</code> / <code>bzip2</code> / <code>xz</code></td></tr>
+    </tbody>
+  </table></div>
+  <p>tar 本身<strong>只管打包不管压缩</strong>——<code>.tar</code> 文件和里面内容一样大。配上压缩标志才是常见的 <code>.tar.gz</code> / <code>.tar.bz2</code> / <code>.tar.xz</code>。</p>
+
+  <h3>tar 基本功：创建 / 解开 / 查看</h3>
+  <p>tar 的参数看起来像咒语，但记住这条铁律就够了：<strong>「c 创建，x 解开，t 查看，f 跟文件名」</strong>。</p>
+  <div class="codeblock"><pre><span class="cmt"># === 创建 ===</span>
+<span class="pr">$</span> <span class="cm">tar</span> <span class="fl">-cf</span> project.tar  ./project          <span class="cmt"># 只打包不压缩</span>
+<span class="pr">$</span> <span class="cm">tar</span> <span class="fl">-czf</span> project.tar.gz  ./project       <span class="cmt"># 打包 + gzip 压缩（最常用）</span>
+<span class="pr">$</span> <span class="cm">tar</span> <span class="fl">-cjf</span> project.tar.bz2 ./project       <span class="cmt"># 打包 + bzip2 压缩（更小但更慢）</span>
+<span class="pr">$</span> <span class="cm">tar</span> <span class="fl">-cJf</span> project.tar.xz  ./project       <span class="cmt"># 打包 + xz 压缩（最小最慢）</span>
+
+<span class="cmt"># === 解开 ===</span>
+<span class="pr">$</span> <span class="cm">tar</span> <span class="fl">-xf</span> project.tar                      <span class="cmt"># 解开 tar</span>
+<span class="pr">$</span> <span class="cm">tar</span> <span class="fl">-xzf</span> project.tar.gz                  <span class="cmt"># 解开 .tar.gz</span>
+<span class="pr">$</span> <span class="cm">tar</span> <span class="fl">-xjf</span> project.tar.bz2                 <span class="cmt"># 解开 .tar.bz2</span>
+<span class="pr">$</span> <span class="cm">tar</span> <span class="fl">-xJf</span> project.tar.xz                   <span class="cmt"># 解开 .tar.xz</span>
+
+<span class="cmt"># === 只看不解 ===</span>
+<span class="pr">$</span> <span class="cm">tar</span> <span class="fl">-tzf</span> project.tar.gz                  <span class="cmt"># 列出里面有什么（不解开）</span>
+<span class="pr">$</span> <span class="cm">tar</span> <span class="fl">-tzf</span> project.tar.gz <span class="op">|</span> <span class="cm">grep</span> .py      <span class="cmt"># 只看 .py 文件在不在包里</span></pre></div>
+
+  <div class="tbl"><table>
+    <thead><tr><th>标志</th><th>含义</th><th>记忆口诀</th></tr></thead>
+    <tbody>
+      <tr><td><code>c</code></td><td><strong>c</strong>reate 创建</td><td>想「造」包用 c</td></tr>
+      <tr><td><code>x</code></td><td>e<strong>x</strong>tract 解开</td><td>想「拆」包用 x</td></tr>
+      <tr><td><code>t</code></td><td>lis<strong>t</strong> 列出内容</td><td>想「偷看」用 t</td></tr>
+      <tr><td><code>f</code></td><td><strong>f</strong>ile 指定文件名</td><td><strong>必须要有，且放最后</strong>（f 后面紧跟文件名）</td></tr>
+      <tr><td><code>v</code></td><td><strong>v</strong>erbose 啰嗦模式</td><td>显示正在处理的文件名，可选但推荐</td></tr>
+      <tr><td><code>z</code></td><td>g<strong>z</strong>ip 压缩/解压</td><td>配 <code>.tar.gz</code></td></tr>
+      <tr><td><code>j</code></td><td>b<strong>z</strong>ip2 压缩/解压</td><td>配 <code>.tar.bz2</code></td></tr>
+      <tr><td><code>J</code></td><td>x<strong>z</strong> 压缩/解压</td><td>配 <code>.tar.xz</code>（大写！）</td></tr>
+      <tr><td><code>C</code></td><td>指定解压到的目录</td><td><code>-C /opt/app</code>（大写！）</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="box warn"><span class="bt">⚠️ 经典踩坑</span>
+    <p>① <strong>f 必须在最后</strong>，后面紧跟文件名——<code>tar -zcfv x.tar.gz dir/</code> 是<strong>错的</strong>（v 挡在 f 和文件名之间）。正确：<code>tar -czvf x.tar.gz dir/</code>。<br>
+    ② <strong>解压会覆盖同名文件</strong>，没有确认提示。不确定内容时先用 <code>-t</code> 看看。<br>
+    ③ 现代 tar(GNU tar)其实<strong>能自动检测压缩格式</strong>，写 <code>tar -xf x.tar.gz</code> 不写 <code>z</code> 也 OK——但建议还是写全，清晰且兼容老系统。</p>
+  </div>
+
+  <h3>tar 进阶用法</h3>
+  <div class="codeblock"><pre><span class="cmt"># 解压到指定目录（-C 大写）</span>
+<span class="pr">$</span> <span class="cm">tar</span> <span class="fl">-xzf</span> app.tar.gz <span class="fl">-C</span> /opt/app/
+
+<span class="cmt"># 只解压包里某几个文件</span>
+<span class="pr">$</span> <span class="cm">tar</span> <span class="fl">-xzf</span> backup.tar.gz ./project/config.yml ./project/data/
+
+<span class="cmt"># 打包时排除某些文件/目录</span>
+<span class="pr">$</span> <span class="cm">tar</span> <span class="fl">-czf</span> src.tar.gz <span class="fl">--exclude</span>=node_modules <span class="fl">--exclude</span>=*.log ./project
+
+<span class="cmt"># 打包时排除列表文件</span>
+<span class="pr">$</span> <span class="cm">tar</span> <span class="fl">-czf</span> src.tar.gz <span class="fl">--exclude-from</span>=.tarignore ./project  <span class="cmt"># .tarignore 每行一个排除模式</span>
+
+<span class="cmt"># 不解压直接看某个文件内容</span>
+<span class="pr">$</span> <span class="cm">tar</span> <span class="fl">-xzf</span> backup.tar.gz <span class="fl">-O</span> ./project/readme.txt  <span class="cmt"># -O 输出到 stdout</span>
+
+<span class="cmt"># 从管道接收 tar（常见于远程传输场景）</span>
+<span class="pr">$</span> <span class="cm">ssh</span> user@host <span class="st">"tar -czf - /data"</span> <span class="op">|</span> <span class="cm">tar</span> <span class="fl">-xzf</span> <span class="fl">-C</span> ./backup   <span class="cmt"># 远程打包→本地解</span></pre></div>
+
+  <div class="box tip"><span class="bt">💡 管道传输妙用</span>
+    <p>上面最后一条命令的行末 <code>-</code> 表示 stdin/stdout——<strong>远端打包写到 stdout，管道传到本地，本地从 stdin 解开</strong>。整个过程不产生中间文件，大目录传输时非常高效。更多用法见第 8 章 scp/rsync。</p>
+  </div>
+
+  <h3>gzip / bzip2 / xz：单独压缩单个文件</h3>
+  <p>如果不打 tar 包，只想压一个文件（比如日志），直接用压缩工具：</p>
+  <div class="codeblock"><pre><span class="cmt"># gzip — 最常用，速度快</span>
+<span class="pr">$</span> <span class="cm">gzip</span> app.log                        <span class="cmt"># → app.log.gz（原文件消失）</span>
+<span class="pr">$</span> <span class="cm">gzip</span> <span class="fl">-k</span> app.log                      <span class="cmt"># → app.log.gz（-k 保留原文件）</span>
+<span class="pr">$</span> <span class="cm">gunzip</span> app.log.gz                    <span class="cmt"># 解压</span>
+<span class="pr">$</span> <span class="cm">zcat</span> app.log.gz                      <span class="cmt"># 不解压直接看内容</span>
+<span class="pr">$</span> <span class="cm">zless</span> app.log.gz                     <span class="cmt"># 不解压分页浏览</span>
+
+<span class="cmt"># 调节压缩级别：1 最快但压缩比低，9 最慢但最狠（默认 6）</span>
+<span class="pr">$</span> <span class="cm">gzip</span> <span class="fl">-1</span> huge.log                      <span class="cmt"># 快速压缩大日志</span>
+<span class="pr">$</span> <span class="cm">gzip</span> <span class="fl">-9</span> important.tar                 <span class="cmt"># 极致压缩</span></pre></div>
+
+  <div class="tbl"><table>
+    <thead><tr><th>工具</th><th>后缀</th><th>压缩比</th><th>速度</th><th>适用场景</th></tr></thead>
+    <tbody>
+      <tr><td><code>gzip</code></td><td><code>.gz</code></td><td>中</td><td>快</td><td>日常首选；日志压缩；管道友好</td></tr>
+      <tr><td><code>bzip2</code></td><td><code>.bz2</code></td><td>较高</td><td>较慢</td><td>对体积敏感、不赶时间的归档</td></tr>
+      <tr><td><code>xz</code></td><td><code>.xz</code></td><td>最高</td><td>最慢</td><td>长期归档、发布包（很多发行版用 .tar.xz）</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>zip / unzip：跨平台的通用格式</h3>
+  <p>传给 Windows/macOS 用户时用 zip——无需额外软件就能打开。</p>
+  <div class="codeblock"><pre><span class="cmt"># 打包+压缩</span>
+<span class="pr">$</span> <span class="cm">zip</span> <span class="fl">-r</span> project.zip ./project            <span class="cmt"># -r 递归目录，必须加！</span>
+<span class="pr">$</span> <span class="cm">zip</span> <span class="fl">-r</span> <span class="fl">-q</span> project.zip ./project          <span class="cmt"># -q 安静模式，不打印文件列表</span>
+<span class="pr">$</span> <span class="cm">zip</span> <span class="fl">-r</span> <span class="fl">-e</span> secret.zip ./docs             <span class="cmt"># -e 加密，会提示输入密码</span>
+
+<span class="cmt"># 解压</span>
+<span class="pr">$</span> <span class="cm">unzip</span> project.zip                     <span class="cmt"># 解压到当前目录</span>
+<span class="pr">$</span> <span class="cm">unzip</span> project.zip <span class="fl">-d</span> /opt/app/        <span class="cmt"># 解压到指定目录（-d，注意和 tar 的 -C 不同！）</span>
+<span class="pr">$</span> <span class="cm">unzip</span> <span class="fl">-l</span> project.zip                   <span class="cmt"># 只看里面有什么不解压（-l = list）</span>
+<span class="pr">$</span> <span class="cm">unzip</span> <span class="fl">-o</span> project.zip                   <span class="cmt"># 覆盖已有文件不询问（overwrite）</span></pre></div>
+
+  <div class="box warn"><span class="bt">⚠️ zip 与 tar 的差异</span>
+    <p>① zip 的递归标志是 <code>-r</code>（和 cp/scp 一样），tar 则是<strong>默认递归</strong>不需要额外标志。<br>
+    ② zip 的指定目标目录是 <code>-d</code>，tar 是 <code>-C</code>——容易搞混。<br>
+    ③ <strong>Linux 文件权限/属主信息</strong>在 zip 里会丢失，tar 则完整保留。跨平台分发给最终用户用 zip，服务器间传输/备份用 tar.gz。</p>
+  </div>
+
+  <h3>实战场景速查</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>你要做什么</th><th>命令</th></tr></thead>
+    <tbody>
+      <tr><td>打包项目源码（排除 node_modules）发给同事</td><td><code>tar -czf project.tar.gz --exclude=node_modules ./project</code></td></tr>
+      <tr><td>把远程服务器日志拉下来压缩存档</td><td><code>ssh host "tar -czf - /var/log/app" &gt; logs-$(date +%F).tar.gz</code></td></tr>
+      <tr><td>解压 .tar.xz 源码包</td><td><code>tar -xJf kernel.tar.xz -C /usr/src/</code></td></tr>
+      <tr><td>快速压缩一个大日志文件</td><td><code>gzip -1 access.log</code></td></tr>
+      <tr><td>把结果发给 Windows 用户</td><td><code>zip -r result.zip ./result/</code></td></tr>
+      <tr><td>不解压查看压缩包内容</td><td><code>tar -tzf x.tar.gz</code> 或 <code>unzip -l x.zip</code></td></tr>
+      <tr><td>只看压缩包里某个配置文件</td><td><code>tar -xzf backup.tar.gz -O ./etc/config.yml | less</code></td></tr>
+    </tbody>
+  </table></div>
+</div></section>
+<!-- ============ 19 ============ -->
+<section class="chapter" id="c19"><div class="wrap">
+  <h2><span class="h2num">19</span>Git 实战（含 worktree） <span style="color:var(--green);font-size:16px">★</span></h2>
+  <p class="lead">Git 不只是「存代码」——它是你改崩了能回滚、多条线并行开发不打架、多人协作不互相踩脚的保障。这章从日常高频操作讲到 worktree 这种效率利器。</p>
+
+  <h3>先理解三个概念</h3>
+  <div class="flow">
+    <div><strong>工作区</strong><br>你硬盘上能看到的文件</div>
+    <div class="arr">→ add →</div>
+    <div><strong>暂存区 staging</strong><br>准备提交的快照</div>
+    <div class="arr">→ commit →</div>
+    <div><strong>版本库 repo</strong><br>Git 记录的历史</div>
+  </div>
+  <p>Git 跟踪的是<strong>修改（delta）</strong>，不是文件。每个 commit 是一次完整快照，但你看到的 diff 是相邻两次快照的差。理解这个模型，后续所有操作都有直觉。</p>
+
+  <h3>起步：安装与配置</h3>
+  <div class="codeblock"><pre><span class="cmt"># 安装（一般已预装）</span>
+<span class="pr">$</span> <span class="cm">git</span> --version                       <span class="cmt"># 确认已装</span>
+
+<span class="cmt"># 必须配置的两项（提交时会附上你的身份）</span>
+<span class="pr">$</span> <span class="cm">git</span> config <span class="fl">--global</span> user.name <span class="st">"Junlin Wu"</span>
+<span class="pr">$</span> <span class="cm">git</span> config <span class="fl">--global</span> user.email <span class="st">"junlin@example.com"</span>
+
+<span class="cmt"># 推荐顺手配的</span>
+<span class="pr">$</span> <span class="cm">git</span> config <span class="fl">--global</span> init.defaultBranch main  <span class="cmt"># 默认分支名用 main</span>
+<span class="pr">$</span> <span class="cm">git</span> config <span class="fl">--global</span> pull.rebase true        <span class="cmt"># pull 时用 rebase 代替 merge</span>
+<span class="pr">$</span> <span class="cm">git</span> config <span class="fl">--global</span> core.editor vim           <span class="cmt"># 默认编辑器设为 vim</span></pre></div>
+
+  <h3>从零开始：init 与 clone</h3>
+  <div class="codeblock"><pre><span class="cmt"># 方式一：把现有目录变成 Git 仓库</span>
+<span class="pr">$</span> <span class="cm">cd</span> my-project/
+<span class="pr">$</span> <span class="cm">git</span> init                              <span class="cmt"># 创建 .git/ 子目录，这就是仓库本体</span>
+<span class="pr">$</span> <span class="cm">git</span> add <span class="fl">-A</span>                            <span class="cmt"># 把所有文件加入暂存</span>
+<span class="pr">$</span> <span class="cm">git</span> commit <span class="fl">-m</span> <span class="st">"初始提交"</span>             <span class="cmt"># 第一次 commit</span>
+
+<span class="cmt"># 方式二：从远程克隆（最常见）</span>
+<span class="pr">$</span> <span class="cm">git</span> clone git@github.com:user/repo.git
+<span class="pr">$</span> <span class="cm">git</span> clone git@github.com:user/repo.git  my-dir   <span class="cmt"># 克隆到指定目录</span>
+<span class="pr">$</span> <span class="cm">git</span> clone <span class="fl">--depth</span> 1 git@...repo.git             <span class="cmt"># 浅克隆：只拉最新 commit</span></pre></div>
+
+  <h3>日常四步：status → add → commit → push</h3>
+  <p>90% 的日常工作就是这四个命令的循环：</p>
+  <div class="codeblock"><pre><span class="cmt"># ① 看当前状态——改了什么、哪些待暂存、哪些待提交</span>
+<span class="pr">$</span> <span class="cm">git</span> status
+<span class="pr">$</span> <span class="cm">git</span> status <span class="fl">-s</span>                       <span class="cmt"># 精简输出</span>
+
+<span class="cmt"># ② 把修改加入暂存区</span>
+<span class="pr">$</span> <span class="cm">git</span> add README.md                    <span class="cmt"># 加一个文件</span>
+<span class="pr">$</span> <span class="cm">git</span> add <span class="fl">-A</span>                            <span class="cmt"># 加所有修改（新增+修改+删除）</span>
+<span class="pr">$</span> <span class="cm">git</span> add <span class="fl">-u</span>                            <span class="cmt"># 只加已跟踪文件的修改和删除</span>
+<span class="pr">$</span> <span class="cm">git</span> add <span class="fl">-p</span>                            <span class="cmt"># 交互式逐块暂存（推荐！精细控制）</span>
+
+<span class="cmt"># ③ 提交——给这次修改起个名字</span>
+<span class="pr">$</span> <span class="cm">git</span> commit <span class="fl">-m</span> <span class="st">"修复登录页按钮不显示的问题"</span>
+<span class="pr">$</span> <span class="cm">git</span> commit <span class="fl">-am</span> <span class="st">"小修"</span>               <span class="cmt"># 跳过 add 直接提交已跟踪文件的修改</span>
+
+<span class="cmt"># ④ 推送到远程</span>
+<span class="pr">$</span> <span class="cm">git</span> push                             <span class="cmt"># 推到默认远程（通常是 origin）</span>
+<span class="pr">$</span> <span class="cm">git</span> push <span class="fl">-u</span> origin main              <span class="cmt"># 首次推送并设置上游</span></pre></div>
+
+  <div class="box tip"><span class="bt">💡 好的 commit message</span>
+    <p>用<strong>祈使句</strong>（像对代码库下命令）：<code>"添加用户登录功能"</code> 而不是 <code>"加了登录"</code>。
+    第一行 50 字以内概括做了什么，空一行后可写详细的为什么。这样 <code>git log --oneline</code> 一目了然。</p>
+  </div>
+
+  <h3>看历史：log / diff / show</h3>
+  <div class="codeblock"><pre><span class="cmt"># log — 查看提交历史</span>
+<span class="pr">$</span> <span class="cm">git</span> log                              <span class="cmt"># 完整日志（q 退出）</span>
+<span class="pr">$</span> <span class="cm">git</span> log <span class="fl">--oneline</span>                   <span class="cmt"># 一行一条，最常用</span>
+<span class="pr">$</span> <span class="cm">git</span> log <span class="fl">--oneline</span> <span class="fl">--graph</span> <span class="fl">--all</span>    <span class="cmt"># 带 ASCII 分支图，看合并历史</span>
+<span class="pr">$</span> <span class="cm">git</span> log <span class="fl">--oneline</span> <span class="fl">-10</span>               <span class="cmt"># 只看最近 10 条</span>
+<span class="pr">$</span> <span class="cm">git</span> log <span class="fl">--oneline</span> main..feature      <span class="cmt"># feature 有但 main 没有的提交</span>
+<span class="pr">$</span> <span class="cm">git</span> log <span class="fl">-p</span> app.js                    <span class="cmt"># 看某文件的变更历史（含具体 diff）</span>
+
+<span class="cmt"># diff — 看具体改了什么</span>
+<span class="pr">$</span> <span class="cm">git</span> diff                             <span class="cmt"># 工作区 vs 暂存区（还没 add 的改动）</span>
+<span class="pr">$</span> <span class="cm">git</span> diff <span class="fl">--staged</span>                   <span class="cmt"># 暂存区 vs 最新 commit（已 add 还没 commit 的）</span>
+<span class="pr">$</span> <span class="cm">git</span> diff HEAD~1                     <span class="cmt"># 工作区 vs 上一次 commit</span>
+<span class="pr">$</span> <span class="cm">git</span> diff main feature               <span class="cmt"># 两个分支的差异</span>
+
+<span class="cmt"># show — 看某次 commit 的详细信息</span>
+<span class="pr">$</span> <span class="cm">git</span> show                            <span class="cmt"># 最新 commit 的完整 diff</span>
+<span class="pr">$</span> <span class="cm">git</span> show a1b2c3d                     <span class="cmt"># 指定 commit 的 diff</span>
+<span class="pr">$</span> <span class="cm">git</span> show a1b2c3d:README.md           <span class="cmt"># 看某 commit 时某个文件的内容</span></pre></div>
+
+  <h3>分支：并行开发的基石</h3>
+  <p>分支就是一条独立的开发线。不改主线代码，在自己的分支上随意折腾，好了再合回去。</p>
+  <div class="codeblock"><pre><span class="cmt"># 查看分支</span>
+<span class="pr">$</span> <span class="cm">git</span> branch                           <span class="cmt"># 列出本地分支（前面有 * 的是当前分支）</span>
+<span class="pr">$</span> <span class="cm">git</span> branch <span class="fl">-a</span>                        <span class="cmt"># 含远程分支</span>
+<span class="pr">$</span> <span class="cm">git</span> branch <span class="fl">-v</span>                        <span class="cmt"># 显示各分支最新 commit</span>
+
+<span class="cmt"># 创建与切换</span>
+<span class="pr">$</span> <span class="cm">git</span> branch feature-login             <span class="cmt"># 创建分支（但不切过去）</span>
+<span class="pr">$</span> <span class="cm">git</span> switch feature-login             <span class="cmt"># 切换分支（Git 2.23+ 推荐用 switch）</span>
+<span class="pr">$</span> <span class="cm">git</span> switch <span class="fl">-c</span> feature-payment       <span class="cmt"># 创建并切换（一步到位）← 最常用</span>
+<span class="pr">$</span> <span class="cm">git</span> checkout <span class="fl">-b</span> feature-payment      <span class="cmt"># 等价写法（老习惯）</span>
+
+<span class="cmt"># 合并</span>
+<span class="pr">$</span> <span class="cm">git</span> switch main                      <span class="cmt"># 先切回目标分支</span>
+<span class="pr">$</span> <span class="cm">git</span> merge feature-login              <span class="cmt"># 把 feature-login 合到 main</span>
+
+<span class="cmt"># 删除分支</span>
+<span class="pr">$</span> <span class="cm">git</span> branch <span class="fl">-d</span> feature-login          <span class="cmt"># 安全删除（已合并的才能删）</span>
+<span class="pr">$</span> <span class="cm">git</span> branch <span class="fl">-D</span> feature-login          <span class="cmt"># 强制删除（即使没合并）</span></pre></div>
+
+  <div class="box note"><span class="bt">📖 switch vs checkout</span>
+    <p>老版本 Git 用 <code>git checkout</code> 既切换分支又恢复文件，职责太重容易误操作。
+    Git 2.23 起拆成两个命令：<strong><code>git switch</code>（切分支）和 <code>git restore</code>（恢复文件）</strong>。
+    如果你用的是 Git ≥ 2.23（大概率是），建议养成用 switch/restore 的习惯。</p>
+  </div>
+
+  <h3>rebase：让历史更干净</h3>
+  <p>merge 会产生一条「合并提交」的岔路；rebase 则是把 feature 分支的提交<strong>「搬」到 main 最新 commit 后面</strong>，历史是一条直线。</p>
+  <div class="codeblock"><pre><span class="cmt"># feature 分支 rebase 到 main</span>
+<span class="pr">$</span> <span class="cm">git</span> switch feature
+<span class="pr">$</span> <span class="cm">git</span> rebase main                     <span class="cmt"># 把 feature 的提交搬到 main 最新处</span>
+<span class="cmt"># 如有冲突：解决冲突 → git add → git rebase --continue</span>
+
+<span class="cmt"># 交互式 rebase：整理自己的提交历史（神器）</span>
+<span class="pr">$</span> <span class="cm">git</span> rebase <span class="fl">-i</span> HEAD~3               <span class="cmt"># 整理最近 3 个 commit</span>
+<span class="cmt"># 在编辑器中：pick 保留 / squash 合并到上一个 / reword 改消息 / drop 丢弃</span></pre></div>
+  <div class="box warn"><span class="bt">⚠️ rebase 黄金法则</span>
+    <p><strong>永远不要 rebase 已经推送给别人使用的分支。</strong>
+    rebase 会改写 commit hash，别人本地的旧 commit 和远程的「新」commit 会产生冲突地狱。
+    简单说：自己的私有 feature 分支随便 rebase，共享分支（main/develop）只用 merge。</p>
+  </div>
+
+  <h3>远程操作：fetch / pull / push / remote</h3>
+  <div class="codeblock"><pre><span class="cmt"># 查看远程仓库</span>
+<span class="pr">$</span> <span class="cm">git</span> remote <span class="fl">-v</span>                       <span class="cmt"># 列出远程地址</span>
+<span class="pr">$</span> <span class="cm">git</span> remote add upstream git@.../original.git  <span class="cmt"># 添加上游仓库（fork 场景）</span>
+
+<span class="cmt"># fetch：只拉取不合并（安全！先看看远程有什么变化）</span>
+<span class="pr">$</span> <span class="cm">git</span> fetch origin
+<span class="pr">$</span> <span class="cm">git</span> fetch <span class="fl">--prune</span>                   <span class="cmt"># 同时清理本地已不存在的远程分支引用</span>
+
+<span class="cmt"># pull = fetch + merge（或 fetch + rebase）</span>
+<span class="pr">$</span> <span class="cm">git</span> pull                            <span class="cmt"># 拉取并合并</span>
+<span class="pr">$</span> <span class="cm">git</span> pull <span class="fl">--rebase</span>                  <span class="cmt"># 拉取并 rebase（保持历史直线）</span>
+
+<span class="cmt"># push：把本地提交推到远程</span>
+<span class="pr">$</span> <span class="cm">git</span> push origin main
+<span class="pr">$</span> <span class="cm">git</span> push <span class="fl">--force-with-lease</span>         <span class="cmt"># 强制推送（比 --force 安全，会检查远程是否有新提交）</span>
+<span class="pr">$</span> <span class="cm">git</span> push origin <span class="fl">--delete</span> old-branch  <span class="cmt"># 删除远程分支</span></pre></div>
+
+  <h3>撤销与回滚：从轻到重</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>场景</th><th>命令</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>改乱了工作区，想丢弃</td><td><code>git restore 文件名</code></td><td>回到最近一次 add/commit 的状态（不可逆！）</td></tr>
+      <tr><td>已 add 但想撤回暂存</td><td><code>git restore --staged 文件名</code></td><td>文件不改，只从暂存区移除</td></tr>
+      <tr><td>改 commit message</td><td><code>git commit --amend -m "新消息"</code></td><td>替换最新 commit（未 push 时用）</td></tr>
+      <tr><td>漏了文件想补进上次 commit</td><td><code>git add 漏的文件 &amp;&amp; git commit --amend --no-edit</code></td><td>不改消息，只补文件</td></tr>
+      <tr><td>撤销最近 N 个 commit</td><td><code>git reset --soft HEAD~3</code></td><td>commit 撤销，改动回到暂存区</td></tr>
+      <tr><td>彻底丢弃最近 N 个 commit</td><td><code>git reset --hard HEAD~3</code></td><td>⚠️ 改动全部消失，慎用</td></tr>
+      <tr><td>撤销某次 commit（已 push）</td><td><code>git revert a1b2c3d</code></td><td>产生一个新 commit 来"反向"撤销，不改历史</td></tr>
+    </tbody>
+  </table></div>
+  <div class="box warn"><span class="bt">⚠️ reset --hard 是不可逆的</span>
+    <p>如果 commit 过，还有救：用 <code>git reflog</code> 找到丢失的 commit hash，再 <code>git reset --hard &lt;hash&gt;</code> 回来。
+    如果没 commit 过就丢了……那就真没了。</p>
+  </div>
+
+  <h3>stash：临时「存档」手头改动</h3>
+  <p>正在改 feature 分支，突然要切去 main 修紧急 bug——但手头代码还不适合 commit。stash 就是「暂存现场，回头继续」。</p>
+  <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">git</span> stash                            <span class="cmt"># 暂存所有改动，工作区变干净</span>
+<span class="pr">$</span> <span class="cm">git</span> stash push <span class="fl">-m</span> <span class="st">"WIP: 登录页重构一半"</span>  <span class="cmt"># 带说明的暂存</span>
+<span class="pr">$</span> <span class="cm">git</span> stash list                       <span class="cmt"># 看所有暂存</span>
+<span class="pr">$</span> <span class="cm">git</span> stash pop                        <span class="cmt"># 恢复最近一次暂存并删掉记录（最常用）</span>
+<span class="pr">$</span> <span class="cm">git</span> stash apply stash@{1}            <span class="cmt"># 恢复指定暂存但不删除</span>
+<span class="pr">$</span> <span class="cm">git</span> stash drop stash@{1}             <span class="cmt"># 删掉指定暂存</span></pre></div>
+
+  <h3>⭐ git worktree：同时开多个分支</h3>
+  <p>这是 Git 最被低估的功能之一。<strong>worktree 让你在同一个仓库里同时 checkout 多个分支到不同目录。</strong>
+  再也不需要为了切分支而 stash → switch → 改完 → switch → stash pop 了。</p>
+  <div class="box note"><span class="bt">📖 什么场景用 worktree？</span>
+    <p>① 正在 A 分支写代码，突然要切 B 分支修 bug——用 worktree 两个分支同时开着，互不干扰。<br>
+    ② 长时间运行的程序/编译在 A 分支跑着，想在 B 分支干别的。<br>
+    ③ 对比两个分支的代码——直接开两个终端窗口各看一个目录。<br>
+    ④ CI/CD 中在不同目录 checkout 不同版本来做并行测试。</p>
+  </div>
+
+  <div class="codeblock"><pre><span class="cmt"># 查看所有 worktree</span>
+<span class="pr">$</span> <span class="cm">git</span> worktree list
+<span class="out">/home/me/project          a1b2c3d [main]</span>
+
+<span class="cmt"># 添加新 worktree：在 ../project-hotfix 目录 checkout hotfix 分支</span>
+<span class="pr">$</span> <span class="cm">git</span> worktree add ../project-hotfix hotfix
+<span class="cmt"># 如果 hotfix 分支不存在，加 -b 创建：</span>
+<span class="pr">$</span> <span class="cm">git</span> worktree add <span class="fl">-b</span> hotfix ../project-hotfix main
+
+<span class="cmt"># 现在两个目录各有一个分支，各自独立操作：</span>
+<span class="pr">$</span> <span class="cm">cd</span> ../project-hotfix                <span class="cmt"># 进入 hotfix 的 worktree</span>
+<span class="pr">$</span> <span class="cm">vim</span> fix.py                           <span class="cmt"># 改代码</span>
+<span class="pr">$</span> <span class="cm">git</span> add <span class="fl">-A</span> <span class="op">&amp;&amp;</span> <span class="cm">git</span> commit <span class="fl">-m</span> <span class="st">"修复"</span>
+<span class="pr">$</span> <span class="cm">git</span> push
+<span class="pr">$</span> <span class="cm">cd</span> ../project                        <span class="cmt"># 回到原来的 worktree，一切如初</span>
+
+<span class="cmt"># 用完了删掉 worktree</span>
+<span class="pr">$</span> <span class="cm">git</span> worktree remove ../project-hotfix
+<span class="cmt"># 或手动删目录后清理引用：git worktree prune</span></pre></div>
+
+  <div class="box warn"><span class="bt">⚠️ worktree 注意事项</span>
+    <p>① <strong>同一个分支不能在两个 worktree 同时 checkout</strong>——Git 会拒绝。<br>
+    ② 每个 worktree 有自己的 <strong>stash</strong> 和 <strong>暂存区</strong>，但共享同一个 <code>.git</code>（实际是引用回主仓库），所以 <strong>commit 全部共享</strong>。<br>
+    ③ <code>git worktree remove</code> 比手动 <code>rm -rf</code> 干净——它会清理 <code>.git/worktrees/</code> 里的元数据。<br>
+    ④ worktree 目录最好放在<strong>仓库外</strong>——别在已有 worktree 里再嵌套创建。</p>
+  </div>
+
+  <div class="box tip"><span class="bt">💡 实战技巧：用 worktree 做 code review</span>
+    <p>别人提了 PR，你想在本地看他的代码但不污染自己的工作区：</p>
+    <div class="codeblock"><pre><span class="pr">$</span> <span class="cm">git</span> fetch origin pull/42/head:pr-42  <span class="cmt"># 拉 PR 到本地分支</span>
+<span class="pr">$</span> <span class="cm">git</span> worktree add ../review-pr42 pr-42 <span class="cmt"># 在新 worktree 打开</span>
+<span class="cmt"># review 完</span>
+<span class="pr">$</span> <span class="cm">git</span> worktree remove ../review-pr42
+<span class="pr">$</span> <span class="cm">git</span> branch <span class="fl">-D</span> pr-42                   <span class="cmt"># 清理分支</span></pre></div>
+  </div>
+
+  <h3>.gitignore：告诉 Git 忽略什么</h3>
+  <div class="codeblock"><pre><span class="cmt"># 常见 .gitignore 示例</span>
+node_modules/
+dist/
+.env
+*.log
+*.swp
+.DS_Store
+__pycache__/
+*.pyc</pre></div>
+  <p>规则：<code>/</code> 结尾匹配目录；<code>*</code> 通配任意字符；以 <code>/</code> 开头只匹配根目录。<br>
+  如果文件已被 Git 跟踪，<code>.gitignore</code> 对它无效——需先 <code>git rm --cached 文件</code> 取消跟踪。</p>
+
+  <h3>实战工作流：一条 feature 的完整流程</h3>
+  <div class="codeblock"><pre><span class="cmt"># ① 从最新的 main 开始</span>
+<span class="pr">$</span> <span class="cm">git</span> switch main
+<span class="pr">$</span> <span class="cm">git</span> pull
+
+<span class="cmt"># ② 开 feature 分支</span>
+<span class="pr">$</span> <span class="cm">git</span> switch <span class="fl">-c</span> feature/user-avatar
+
+<span class="cmt"># ③ 开发……（若干次小 commit）</span>
+<span class="pr">$</span> vim avatar.py
+<span class="pr">$</span> <span class="cm">git</span> add <span class="fl">-p</span> <span class="op">&amp;&amp;</span> <span class="cm">git</span> commit <span class="fl">-m</span> <span class="st">"添加头像上传接口"</span>
+<span class="pr">$</span> vim avatar.html
+<span class="pr">$</span> <span class="cm">git</span> add <span class="fl">-p</span> <span class="op">&amp;&amp;</span> <span class="cm">git</span> commit <span class="fl">-m</span> <span class="st">"添加头像展示组件"</span>
+
+<span class="cmt"># ④ 整理提交历史（把 5 个小提交合并成 1-2 个有意义的）</span>
+<span class="pr">$</span> <span class="cm">git</span> rebase <span class="fl">-i</span> HEAD~2
+
+<span class="cmt"># ⑤ 同步 main 的最新改动</span>
+<span class="pr">$</span> <span class="cm">git</span> rebase main                     <span class="cmt"># 把 feature 的提交搬到 main 最新处</span>
+
+<span class="cmt"># ⑥ 推到远程，创建 PR</span>
+<span class="pr">$</span> <span class="cm">git</span> push <span class="fl">-u</span> origin feature/user-avatar
+
+<span class="cmt"># ⑦ PR 合并后可删分支</span>
+<span class="pr">$</span> <span class="cm">git</span> switch main
+<span class="pr">$</span> <span class="cm">git</span> pull
+<span class="pr">$</span> <span class="cm">git</span> branch <span class="fl">-d</span> feature/user-avatar
+<span class="pr">$</span> <span class="cm">git</span> push origin <span class="fl">--delete</span> feature/user-avatar   <span class="cmt"># 删远程分支</span></pre></div>
+
+  <h3>常见问题与排错</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>问题</th><th>怎么救</th></tr></thead>
+    <tbody>
+      <tr><td>commit 到了错误的分支</td><td><code>git reset --soft HEAD~1</code> 撤回 commit → switch 到正确分支 → 重新 commit</td></tr>
+      <tr><td>merge 冲突了</td><td>打开冲突文件找 <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> 标记 → 手动编辑保留正确版本 → <code>git add</code> → <code>git merge --continue</code></td></tr>
+      <tr><td>push 被拒（别人先推了）</td><td><code>git pull --rebase</code> 先同步再推</td></tr>
+      <tr><td>把敏感文件（密码/密钥）commit 了</td><td><code>git reset --soft HEAD~1</code> 撤回，立即改密码（不要幻想仅删 commit 就安全）</td></tr>
+      <tr><td>误删了还没 push 的 commit</td><td><code>git reflog</code> 找回 hash → <code>git reset --hard &lt;hash&gt;</code></td></tr>
+      <tr><td>clone 太慢</td><td>加 <code>--depth 1</code> 浅克隆，或 <code>--single-branch</code> 只拉一个分支</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Git 速查卡片</h3>
+  <div class="cards" style="margin-top:20px">
+    <div class="card"><h4>基本操作</h4><table><tbody>
+      <tr><td><code>git clone &lt;url&gt;</code></td><td>克隆仓库</td></tr>
+      <tr><td><code>git add -A / -p</code></td><td>全加 / 交互暂存</td></tr>
+      <tr><td><code>git commit -m "..."</code></td><td>提交</td></tr>
+      <tr><td><code>git push / pull</code></td><td>推 / 拉</td></tr>
+      <tr><td><code>git status -s</code></td><td>精简状态</td></tr>
+    </tbody></table></div>
+    <div class="card"><h4>分支</h4><table><tbody>
+      <tr><td><code>git switch -c name</code></td><td>创建并切换</td></tr>
+      <tr><td><code>git merge branch</code></td><td>合并分支</td></tr>
+      <tr><td><code>git rebase main</code></td><td>变基到 main</td></tr>
+      <tr><td><code>git rebase -i HEAD~3</code></td><td>整理最近 3 个 commit</td></tr>
+      <tr><td><code>git branch -d name</code></td><td>删分支</td></tr>
+    </tbody></table></div>
+    <div class="card"><h4>撤销</h4><table><tbody>
+      <tr><td><code>git restore file</code></td><td>丢弃工作区改动</td></tr>
+      <tr><td><code>git restore --staged f</code></td><td>取消暂存</td></tr>
+      <tr><td><code>git reset --soft HEAD~1</code></td><td>撤销 commit 保留改动</td></tr>
+      <tr><td><code>git revert &lt;hash&gt;</code></td><td>反向提交（已 push 用）</td></tr>
+      <tr><td><code>git reflog</code></td><td>查看所有操作历史</td></tr>
+    </tbody></table></div>
+    <div class="card"><h4>worktree</h4><table><tbody>
+      <tr><td><code>git worktree list</code></td><td>列出 worktree</td></tr>
+      <tr><td><code>git worktree add ../dir branch</code></td><td>新建 worktree</td></tr>
+      <tr><td><code>git worktree add -b name ../dir base</code></td><td>创建分支+worktree</td></tr>
+      <tr><td><code>git worktree remove ../dir</code></td><td>删除 worktree</td></tr>
+      <tr><td><code>git worktree prune</code></td><td>清理失效引用</td></tr>
+    </tbody></table></div>
   </div>
 </div></section>
 
