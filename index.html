@@ -1461,6 +1461,18 @@ Host inner
   <h2><span class="h2num">16</span>Vim 系统教学 <span style="color:var(--green);font-size:16px">★</span></h2>
   <p class="lead">Vim 不是"难",是它有一套<strong>和别的编辑器完全不同的心智模型</strong>。理解了模型,快捷键就不是死记了。</p>
 
+  <div class="box note"><span class="bt">📖 vi 和 vim 是什么关系？</span>
+    <p><strong>vi</strong> 是 Unix 最早的纯文本编辑器(1976 年诞生),所有 Linux/Unix 系统<strong>都自带</strong>。<strong>vim</strong> 全称 Vi IMproved(vi 改进版),在 vi 基础上加了<strong>语法高亮、多级撤销、可视模式、插件</strong>等现代功能。
+    你在服务器上敲 <code>vi</code> 和 <code>vim</code> 可能打开同一个程序——很多发行版(如 Ubuntu)的 <code>vi</code> 命令实际上是 vim 的<strong>兼容模式</strong>。</p>
+    <p><strong>实际区别:</strong></p>
+    <ul style="margin:8px 0;padding-left:20px;color:var(--fg);line-height:1.8">
+      <li><strong>极简容器/嵌入式系统</strong>(如 Docker 的 alpine 镜像、busybox)可能只装了精简版 vi,没有 vim。打开后没有语法高亮、<kbd>u</kbd> 只能撤销一次、不支持 <kbd>Ctrl</kbd>+<kbd>v</kbd> 列块模式。</li>
+      <li><strong>如果你在服务器上敲 <code>vim</code> 提示 command not found</strong>——那就用 <code>vi</code> 顶一顶,功能差不多,快捷键大部分通用。也可以装: <code>apt install vim</code> / <code>yum install vim</code>。</li>
+      <li><strong>vi 兼容模式下,</strong>方向键可能失效(只能 <kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd>)、退格键可能变 ^?。这些都是 vi 的「老毛病」,vim 全修了。</li>
+    </ul>
+    <p style="margin-top:8px">本教程讲的是 <strong>vim</strong>,但绝大部分内容(移动、编辑、搜索替换、:wq)在 vi 里完全一样。如果你用的真是远古 vi,遇到不支持的功能(如列块 <kbd>Ctrl</kbd>+<kbd>v</kbd>)不要慌,换 vim 就行。</p>
+  </div>
+
   <h3>核心心智模型:模式(Mode)</h3>
   <p>普通编辑器你打字就上屏。Vim 不是——它大部分时间在 <strong>Normal(普通)模式</strong>,这时键盘上的字母<strong>不是输入文字,而是命令</strong>。
      这正是它高效的原因:整个键盘都成了快捷键。</p>
@@ -1469,7 +1481,7 @@ Host inner
     <tbody>
       <tr><td><strong>Normal</strong> 普通</td><td>移动、删除、复制(默认模式,命令的家)</td><td>启动即在此</td><td>—</td></tr>
       <tr><td><strong>Insert</strong> 插入</td><td>真正打字输入</td><td><kbd>i</kbd> <kbd>a</kbd> <kbd>o</kbd> 等</td><td><kbd>Esc</kbd></td></tr>
-      <tr><td><strong>Visual</strong> 可视</td><td>选中文本</td><td><kbd>v</kbd> <kbd>V</kbd> <kbd>Ctrl</kbd>+<kbd>v</kbd></td><td><kbd>Esc</kbd></td></tr>
+      <tr><td><strong>Visual</strong> 可视</td><td>选中文本</td><td><kbd>v</kbd> <kbd>V</kbd> <kbd>Ctrl</kbd>+<kbd>v</kbd><br><small style="color:var(--fg-dim)">Windows 上若冲突,用 <kbd>Ctrl</kbd>+<kbd>q</kbd></small></td><td><kbd>Esc</kbd></td></tr>
       <tr><td><strong>Command</strong> 命令行</td><td>保存退出、查找替换、设置</td><td><kbd>:</kbd></td><td><kbd>Esc</kbd> / 回车</td></tr>
     </tbody>
   </table></div>
@@ -1600,9 +1612,51 @@ Host inner
     <tbody>
       <tr><td><kbd>v</kbd></td><td>按字符选;选完可 <kbd>d</kbd> 删、<kbd>y</kbd> 复制、<kbd>c</kbd> 改</td></tr>
       <tr><td><kbd>V</kbd></td><td>按整行选</td></tr>
-      <tr><td><kbd>Ctrl</kbd>+<kbd>v</kbd></td><td><strong>列块选择</strong>:选中一个矩形区域,能多行同时插入/删除(如批量加注释)</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>v</kbd></td><td><strong>列块选择(Visual Block)</strong>:选中一个矩形区域,能多行同时插入/删除<br><small style="color:var(--fg-dim)">Windows 上可能被「粘贴」占用,改用 <kbd>Ctrl</kbd>+<kbd>q</kbd> 进入列块模式</small></td></tr>
     </tbody>
   </table></div>
+  <h4>Visual Block 实战：整块注释 / 批量插入</h4>
+  <p>列块选择是 Vim 的"批量处理"神器,最常用的场景就是<strong>给多行加/去注释</strong>。</p>
+  <p><strong>加注释(#或//)：</strong></p>
+  <div class="flow">
+    <span class="node" style="background:var(--accent-bg)">1. <kbd>Ctrl</kbd>+<kbd>v</kbd><br><small>(Win: <kbd>Ctrl</kbd>+<kbd>q</kbd>)</small></span>
+    <span class="arr">→</span>
+    <span class="node" style="background:var(--accent-bg)">2. <kbd>j</kbd><kbd>j</kbd>…<br>选多行</span>
+    <span class="arr">→</span>
+    <span class="node hl">3. <kbd>Shift</kbd>+<kbd>i</kbd><br>进入「块插入」</span>
+    <span class="arr">→</span>
+    <span class="node" style="background:var(--accent-bg)">4. 输入字符<br>如 <code>#</code> </span>
+    <span class="arr">→</span>
+    <span class="node hl">5. <kbd>Esc</kbd><br><strong>关键！</strong></span>
+  </div>
+  <div class="box warn"><span class="bt">⚠️ 常见坑：输入后要按 Esc 才能生效</span>
+    <p>在 Visual Block 模式下按 <kbd>Shift</kbd>+<kbd>i</kbd>(或 <kbd>I</kbd>)进入插入后,你打的字<strong>只会出现在第一行</strong>——看起来像没效果。
+    别慌,<strong>按 <kbd>Esc</kbd> 退出插入模式</strong>,刚刚输入的内容就会<strong>瞬间同步到所有选中的行</strong>。这个「延迟生效」机制很多新手不知道,以为功能坏了。</p>
+  </div>
+  <p><strong>去注释 / 删除 / 修改列块：</strong></p>
+  <p>选中列块后，除了加注释，还有多种编辑操作——这些是 Visual Block 模式下最常用的键：</p>
+  <div class="tbl"><table>
+    <thead><tr><th>按键</th><th>作用</th><th>示例场景</th></tr></thead>
+    <tbody>
+      <tr><td><kbd>d</kbd></td><td><strong>删除</strong>选中的矩形区域</td><td>删掉多行的行首注释符 #、//</td></tr>
+      <tr><td><kbd>x</kbd></td><td>删除选中的<strong>单个字符</strong>(每行只删一列)</td><td>同上，但逐字符删</td></tr>
+      <tr><td><kbd>c</kbd></td><td><strong>修改(change)</strong>:删除选中区域 <strong>并进入插入模式</strong></td><td>把多行同一列的数字/文字批量替换成新内容，改完按 <kbd>Esc</kbd> 应用到所有行</td></tr>
+      <tr><td><kbd>I</kbd> (大写 i)</td><td>在选中块的<strong>左侧</strong>插入，按 <kbd>Esc</kbd> 后所有行同步</td><td>多行行首统一加 # 注释</td></tr>
+      <tr><td><kbd>A</kbd> (大写 a)</td><td>在选中块的<strong>右侧</strong>追加，按 <kbd>Esc</kbd> 后所有行同步</td><td>给多行行尾统一加分号、逗号等</td></tr>
+      <tr><td><kbd>r</kbd> + 字符</td><td><strong>替换</strong>:把选中区域每个字符替换成指定字符(不进插入模式)</td><td>把一列数字全换成 * 占位符</td></tr>
+      <tr><td><kbd>&gt;</kbd> / <kbd>&lt;</kbd></td><td>选中的行<strong>整体缩进/反缩进</strong></td><td>批量调整代码缩进(用 <kbd>V</kbd> 行选更直接)</td></tr>
+      <tr><td><kbd>~</kbd></td><td>切换选中字符的<strong>大小写</strong></td><td>把一列常量名从小写改成大写</td></tr>
+      <tr><td><kbd>g</kbd> <kbd>Ctrl</kbd>+<kbd>a</kbd></td><td>选中列的数字<strong>递增 +1</strong></td><td>数组下标自动重编号</td></tr>
+      <tr><td><kbd>g</kbd> <kbd>Ctrl</kbd>+<kbd>x</kbd></td><td>选中列的数字<strong>递减 −1</strong></td><td>反向编号</td></tr>
+    </tbody>
+  </table></div>
+  <div class="box tip"><span class="bt">💡 <kbd>c</kbd> vs <kbd>d</kbd> 怎么选</span>
+    <p><kbd>d</kbd> 是「干掉就走」——删完留在 Normal 模式,适合单纯去注释。 <kbd>c</kbd> 是「干掉然后写新东西」——删完自动进 Insert 模式,适合<strong>把老内容改成新内容</strong>(比如把一整列 <code>0</code> 改成 <code>1</code>)。和 Normal 模式的记忆法一样:<code>c</code> = change = delete + insert。</p>
+  </div>
+  <div class="box warn"><span class="bt">⚠️ <kbd>I</kbd> / <kbd>A</kbd> / <kbd>c</kbd> 的共同坑</span>
+    <p>这三个操作都会进入插入模式,你打的内容<strong>一开始只出现在第一行</strong>。必须按 <kbd>Esc</kbd> 退出插入模式,内容才会<strong>瞬间同步到所有选中的行</strong>。很多新手以为功能坏了——其实是没按 <kbd>Esc</kbd>。</p>
+  </div>
+
   <h4>寄存器(剪贴板)与系统剪贴板</h4>
   <p>Vim 的复制默认进自己的寄存器,和系统剪贴板分开。想和系统互通,用 <code>"+</code> 寄存器:</p>
   <div class="codeblock"><pre>"+y    <span class="cmt"># 复制到系统剪贴板(在外面能 Ctrl-V 粘)</span>
@@ -1638,10 +1692,32 @@ q            <span class="cmt"># 停止录制</span>
 <span class="cm">set</span> ignorecase smartcase             <span class="cmt"># 搜索忽略大小写,但含大写时区分</span>
 <span class="cm">set</span> incsearch hlsearch  <span class="cmt"># 边打边搜 + 高亮所有匹配</span>
 <span class="cm">set</span> clipboard=unnamedplus             <span class="cmt"># 直接用系统剪贴板(需 vim 支持)</span></pre></div>
+  <div class="box note"><span class="bt">📖 行号开关</span>
+    <p><code>:set nu</code> 是 <code>:set number</code> 的简写,临时打开行号;关掉用 <code>:set nonu</code>。
+    如果你没配 .vimrc,每次进 Vim 后敲一下 <code>:set nu</code> 就行。相对行号 <code>:set rnu</code> 也同理。</p>
+  </div>
   <div class="box tip"><span class="bt">💡 不用记全,练这条主线最划算</span>
     <p>新手只要先把这条流练成肌肉记忆:<strong><kbd>Esc</kbd> 回 Normal → <kbd>i</kbd>/<kbd>o</kbd> 进插入打字 →
        <kbd>Esc</kbd> → <code>:wq</code> 保存退出</strong>。然后逐步加 <code>dd / yy / p / u / /搜索 / ciw / .</code>。
        一周后你就离不开它了。系统内置教程也很好:命令行敲 <code>vimtutor</code> 跟着练 30 分钟。</p>
+  </div>
+
+  <h3>Windows 上的 Vim 注意事项</h3>
+  <p>如果你在 Windows 终端(Windows Terminal / CMD / PowerShell)里用 Vim(WSL 内的或 Windows 原生版),有几个快捷键和 Linux 原生终端不同。</p>
+  <div class="tbl"><table>
+    <thead><tr><th>功能</th><th>Linux 终端</th><th>Windows 终端</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Visual Block</strong> 列块选择</td><td><kbd>Ctrl</kbd>+<kbd>v</kbd></td><td><kbd>Ctrl</kbd>+<kbd>q</kbd></td><td>Windows 终端把 <kbd>Ctrl</kbd>+<kbd>v</kbd> 截获为「粘贴」,所以 Vim 收不到</td></tr>
+      <tr><td><strong>Visual 模式</strong></td><td><kbd>v</kbd> <kbd>V</kbd></td><td><kbd>v</kbd> <kbd>V</kbd></td><td>这两个不变</td></tr>
+      <tr><td><strong>Visual Block 插入后生效</strong></td><td>按 <kbd>Esc</kbd></td><td>按 <kbd>Esc</kbd></td><td>同上——块模式插入后必须 <kbd>Esc</kbd> 才同步到所有行</td></tr>
+      <tr><td>翻半屏</td><td><kbd>Ctrl</kbd>+<kbd>d</kbd> / <kbd>u</kbd></td><td><kbd>Ctrl</kbd>+<kbd>d</kbd> / <kbd>u</kbd></td><td>不变</td></tr>
+      <tr><td>重做</td><td><kbd>Ctrl</kbd>+<kbd>r</kbd></td><td><kbd>Ctrl</kbd>+<kbd>r</kbd></td><td>不变</td></tr>
+      <tr><td>分屏切换</td><td><kbd>Ctrl</kbd>+<kbd>w</kbd></td><td><kbd>Ctrl</kbd>+<kbd>w</kbd></td><td>不变</td></tr>
+      <tr><td>系统剪贴板</td><td><code>"+y</code> / <code>"+p</code></td><td><code>"+y</code> / <code>"+p</code></td><td>WSL 内通常互通;Windows 原生 gVim 也支持</td></tr>
+    </tbody>
+  </table></div>
+  <div class="box warn"><span class="bt">⚠️ 核心记住一条</span>
+    <p>Windows 上凡是我教 <kbd>Ctrl</kbd>+<kbd>v</kbd> 进 Visual Block 的地方,<strong>你一律用 <kbd>Ctrl</kbd>+<kbd>q</kbd> 代替</strong>。其他 <kbd>Ctrl</kbd> 组合键(<kbd>d</kbd> <kbd>u</kbd> <kbd>r</kbd> <kbd>w</kbd>)不受影响,和 Linux 完全一样。</p>
   </div>
 </div></section>
 
@@ -1791,6 +1867,18 @@ q            <span class="cmt"># 停止录制</span>
       <tr><td><code>*</code></td><td>搜光标处的词</td></tr>
       <tr><td><code>:%s/a/b/g</code></td><td>全文替换</td></tr>
       <tr><td><code>:%s/a/b/gc</code></td><td>替换前确认</td></tr>
+    </tbody></table></div>
+    <div class="card"><h4>Visual Block 列块</h4><table><tbody>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>v</kbd><br><small>(Win: <kbd>Ctrl</kbd>+<kbd>q</kbd>)</small></td><td>进入列块选择</td></tr>
+      <tr><td><code>选块→I→#→Esc</code></td><td>多行加注释</td></tr>
+      <tr><td><code>选块→d</code> 或 <code>x</code></td><td>多行去注释</td></tr>
+      <tr><td><code>选数字→g Ctrl-a</code></td><td>整列数字 +1</td></tr>
+    </tbody></table></div>
+    <div class="card"><h4>设置 / 其他</h4><table><tbody>
+      <tr><td><code>:set nu</code> / <code>nonu</code></td><td>显示/隐藏行号</td></tr>
+      <tr><td><code>:set rnu</code></td><td>相对行号</td></tr>
+      <tr><td><code>:set paste</code></td><td>粘贴模式(防缩进乱)</td></tr>
+      <tr><td><code>vimtutor</code></td><td>Vim 内置教程</td></tr>
     </tbody></table></div>
   </div>
 
