@@ -157,11 +157,14 @@
   }
 
   /* 速查卡片 */
-  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin:18px 0}
+  .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:18px 0}
   .card{background:var(--bg-soft);border:1px solid var(--border-soft);border-radius:8px;padding:14px 16px}
   .card h4{margin:0 0 8px;color:var(--green-soft);font-size:14px}
-  .card table{font-size:13px}
+  .card table{font-size:13px;table-layout:fixed;width:100%}
   .card th,.card td{padding:5px 8px}
+  .card td:first-child{padding-left:1.5em;text-indent:-1.5em}
+  .card td code{overflow-wrap:break-word}
+  @media(max-width:700px){.cards{grid-template-columns:1fr}}
 
   /* 顶部移动栏 */
   #topbar{display:none}
