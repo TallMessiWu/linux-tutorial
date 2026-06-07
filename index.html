@@ -163,7 +163,7 @@
   .card table{font-size:13px;table-layout:fixed;width:100%}
   .card th,.card td{padding:5px 8px}
   .card td:first-child{padding-left:1.5em;text-indent:-1.5em}
-  .card td code{overflow-wrap:break-word}
+  .card td code{overflow-wrap:anywhere;white-space:normal}
   @media(max-width:700px){.cards{grid-template-columns:1fr}}
 
   /* 顶部移动栏 */
@@ -1832,23 +1832,22 @@ q            <span class="cmt"># 停止录制</span>
   <h3>组合配方速查</h3>
   <div class="cards">
     <div class="card"><h4>统计 / Top N</h4><table><tbody>
-      <tr><td colspan="2"><code>... | sort | uniq -c | sort -rn | head</code></td></tr>
-      <tr><td colspan="2" style="color:var(--fg-dim)">频率统计万能套路</td></tr>
+      <tr><td><code>... | sort | uniq -c<br>&emsp;| sort -rn | head</code></td><td>频率统计万能套路</td></tr>
     </tbody></table></div>
     <div class="card"><h4>找大文件</h4><table><tbody>
-      <tr><td colspan="2"><code>du -ah | sort -rh | head -5</code></td></tr>
-      <tr><td colspan="2"><code>find . -size +500M -print</code></td></tr>
+      <tr><td><code>du -ah | sort -rh<br>&emsp;| head -5</code></td><td>按大小排，看前5大</td></tr>
+      <tr><td><code>find . -size +500M<br>&emsp;-print</code></td><td>找大于500M的文件</td></tr>
     </tbody></table></div>
     <div class="card"><h4>安全批量删</h4><table><tbody>
-      <tr><td colspan="2"><code>find … -print</code> 先看</td></tr>
-      <tr><td colspan="2"><code>find … -delete</code> 再删</td></tr>
+      <tr><td><code>find ... -print</code></td><td>先列出来看一遍</td></tr>
+      <tr><td><code>find ... -delete</code></td><td>确认无误再删</td></tr>
     </tbody></table></div>
   </div>
 
   <h3>Vim 速查</h3>
   <div class="cards">
     <div class="card"><h4>救命 / 模式</h4><table><tbody>
-      <tr><td><kbd>Esc</kbd></td><td>回 Normal</td></tr>
+      <tr><td><code>Esc</code></td><td>回 Normal</td></tr>
       <tr><td><code>i a o</code></td><td>插入/追加/开行</td></tr>
       <tr><td><code>:w :q :wq</code></td><td>存/退/存退</td></tr>
       <tr><td><code>:q!</code></td><td>弃改强退</td></tr>
@@ -1872,7 +1871,7 @@ q            <span class="cmt"># 停止录制</span>
       <tr><td><code>:%s/a/b/gc</code></td><td>替换前确认</td></tr>
     </tbody></table></div>
     <div class="card"><h4>Visual Block 列块</h4><table><tbody>
-      <tr><td><kbd>Ctrl</kbd>+<kbd>v</kbd><br><small>(Win: <kbd>Ctrl</kbd>+<kbd>q</kbd>)</small></td><td>进入列块选择</td></tr>
+      <tr><td><code>Ctrl+v</code><br><small>(Win: <code>Ctrl+q</code>)</small></td><td>进入列块选择</td></tr>
       <tr><td><code>选块→I→#→Esc</code></td><td>多行加注释</td></tr>
       <tr><td><code>选块→d</code> 或 <code>x</code></td><td>多行去注释</td></tr>
       <tr><td><code>选数字→g Ctrl-a</code></td><td>整列数字 +1</td></tr>

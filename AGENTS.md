@@ -4,7 +4,7 @@ This file provides guidance to AI agents when working with code in this reposito
 
 ## 这个仓库是什么
 
-一份**单文件、自包含、离线**的中文教程网页:`index.html`(约 2398 行 / 191K)。
+一份**单文件、自包含、离线**的中文教程网页:`index.html`(约 2397 行 / 191K)。
 内容是「Linux 命令 + Vim 从入门到进阶」,面向一位**每天在服务器上干活、但没系统学过 Linux** 的用户。
 
 整个"代码库"就是这<strong>一个 HTML 文件</strong>。所有 CSS / JS 全部内联,**无任何外部依赖**(不引 CDN、字体、图片、库)。
@@ -27,7 +27,7 @@ This file provides guidance to AI agents when working with code in this reposito
 | 侧边栏目录导航 | `<nav id="toc">` | ~203 |
 | 首屏 hero | `<header class="hero">` | ~233 |
 | 各章正文 | `<!-- ===== N ===== -->` 注释分隔 | 见下表 |
-| 内联 JS(复制按钮 / 目录滚动高亮 / 移动端菜单) | `<script>` … `</script>` | ~2355–2395 |
+| 内联 JS(复制按钮 / 目录滚动高亮 / 移动端菜单) | `<script>` … `</script>` | ~2354–2394 |
 
 ### 章节导航地图(改某章时直接按行号 Read,无需读全文)
 
@@ -50,8 +50,8 @@ This file provides guidance to AI agents when working with code in this reposito
 | 15 ★ | `c15` | Shell 脚本基础 | 1356 |
 | 16 ★ | `c16` | Vim 系统教学 | 1462 |
 | 17 | `c17` | 速查附录(卡片式 cheatsheet,含 tar/zip、Git) | 1727 |
-| 18 ★ | `c18` | 压缩与归档 tar/zip(gzip/bzip2/xz、管道传输、排除文件) | 1893 |
-| 19 ★ | `c19` | Git 实战(含 worktree、分支/rebase、撤销、stash) | 2026 |
+| 18 ★ | `c18` | 压缩与归档 tar/zip(gzip/bzip2/xz、管道传输、排除文件) | 1892 |
+| 19 ★ | `c19` | Git 实战(含 worktree、分支/rebase、撤销、stash) | 2025 |
 
 > 行号是编辑前的快照,可能漂移。精确定位用:`grep -n 'id="cN"' index.html`,或 `grep -n '<!-- ===== N' …`。
 
